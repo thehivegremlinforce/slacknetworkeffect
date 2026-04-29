@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slack Connect — Network Effect</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --aug:#4A154B;--aug-l:#611f69;--aug-d:#350d36;
+  --purple:#7C6AF7;--green:#4ade80;--yellow:#ECB22E;
+  --blue:#38bdf8;--red:#E01E5A;--pink:#c084fc;
+  --bg:#0d0f12;--surface:#1a1d21;--surface2:#222529;
+  --border:#2a2d35;--text:#d1d2d3;--muted:#6b6b78;
+}
+html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-system,sans-serif;color:var(--text);overflow:hidden;}
+.layout{display:grid;grid-template-columns:300px 1fr 290px;grid-template-rows:56px 1fr 52px;height:100vh;}
+
+/* ── TOPBAR ── */
+.topbar{grid-column:1/-1;background:var(--aug);display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid #ffffff15;}
+.t-left{display:flex;align-items:center;gap:14px;}
+.logo{font-size:21px;font-weight:900;color:#fff;letter-spacing:-1px;}
+.logo span{color:var(--yellow);}
+.t-div{width:1px;height:22px;background:#ffffff25;}
+.t-title{font-size:13px;font-weight:700;color:#e8d5ff;}
+.t-right{display:flex;align-items:center;gap:12px;}
+.stat-pill{display:flex;align-items:center;gap:7px;background:#ffffff12;border:1px solid #ffffff20;border-radius:20px;padding:4px 12px;font-size:11px;color:#fff;font-weight:700;}
+.stat-pill .num{color:var(--yellow);font-size:14px;font-weight:900;min-width:28px;text-align:center;transition:color .3s;}
+
+/* ── LEFT PANEL ── */
+.left-panel{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.panel-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+.ptab{flex:1;padding:10px 0;font-size:11px;font-weight:700;text-align:center;cursor:pointer;color:var(--muted);border:none;background:transparent;transition:all .2s;font-family:'Lato',sans-serif;}
+.ptab.active{color:#fff;background:var(--bg);border-bottom:2px solid var(--yellow);}
+.ptab:hover:not(.active){color:#fff;}
+.panel-body{flex:1;overflow-y:auto;padding:14px;}
+.panel-body::-webkit-scrollbar{width:4px;}
+.panel-body::-webkit-scrollbar-thumb{background:#2a2d35;border-radius:2px;}
+
+/* VIEW TAB */
+.p-label{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:9px;margin-top:4px;}
+.leg-list{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+.leg-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;background:var(--bg);border:1px solid var(--border);cursor:pointer;transition:all .2s;}
+.leg-item:hover,.leg-item.on{border-color:var(--purple);background:#1e1040;}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.leg-name{font-size:11px;font-weight:700;color:#fff;}
+.leg-sub{font-size:10px;color:var(--muted);margin-top:1px;}
+.scene-btns{display:flex;flex-direction:column;gap:5px;}
+.scene-btn{padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:11px;font-weight:700;cursor:pointer;text-align:left;font-family:'Lato',sans-serif;transition:all .2s;}
+.scene-btn:hover{border-color:var(--yellow);color:var(--yellow);}
+.scene-btn.on{background:#1a1000;border-color:var(--yellow);color:var(--yellow);}
+
+/* CONFIGURE TAB */
+.quality-wrap{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;}
+.q-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;}
+.q-title{font-size:11px;font-weight:700;color:#fff;}
+.q-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--aug);color:#e8d5ff;border:1px solid var(--aug-l);}
+.q-slider{width:100%;appearance:none;height:5px;border-radius:3px;outline:none;cursor:pointer;background:var(--border);margin-bottom:7px;}
+.q-slider::-webkit-slider-thumb{appearance:none;width:17px;height:17px;border-radius:50%;background:var(--yellow);cursor:pointer;border:2px solid #fff;}
+.q-levels{display:flex;justify-content:space-between;}
+.q-lev{font-size:9px;color:var(--muted);font-weight:700;cursor:default;}
+.q-lev.cur{color:var(--yellow);}
+.q-summary{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.q-pill{font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:var(--surface2);color:var(--muted);}
+
+/* SLACKBOT */
+.slackbot-section{background:var(--bg);border:1px solid #ECB22E33;border-radius:10px;padding:12px;margin-bottom:14px;}
+.sb-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;}
+.sb-icon{font-size:22px;flex-shrink:0;}
+.sb-info{flex:1;}
+.sb-name-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.sb-name{font-size:13px;font-weight:700;color:#fff;}
+.sb-tag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:#1a1000;color:var(--yellow);border:1px solid #ECB22E44;}
+.sb-desc{font-size:10px;color:var(--muted);line-height:1.55;}
+.sb-toggle-row{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.sb-toggle{position:relative;display:inline-block;width:34px;height:19px;flex-shrink:0;}
+.sb-toggle input{opacity:0;width:0;height:0;}
+.sb-slider-t{position:absolute;cursor:pointer;inset:0;background:var(--border);border-radius:19px;transition:.3s;}
+.sb-slider-t:before{content:'';position:absolute;height:13px;width:13px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;}
+.sb-toggle input:checked+.sb-slider-t{background:var(--yellow);}
+.sb-toggle input:checked+.sb-slider-t:before{transform:translateX(15px);}
+.sb-lbl{font-size:11px;font-weight:700;color:var(--muted);transition:color .2s;}
+.sb-lbl.on{color:var(--yellow);}
+.sb-bullets{overflow:hidden;max-height:0;transition:max-height .3s ease;display:flex;flex-direction:column;gap:5px;margin-top:0;}
+.sb-bullets.vis{max-height:200px;margin-top:10px;}
+.sb-bullet{display:flex;gap:6px;font-size:10px;color:var(--muted);line-height:1.45;}
+.sb-bullet::before{content:'→';color:var(--yellow);font-weight:700;flex-shrink:0;}
+
+/* NODE SECTIONS */
+.node-section{margin-bottom:12px;}
+.ns-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.ns-left{display:flex;align-items:center;gap:7px;}
+.ns-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.ns-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);}
+.ns-count{font-size:9px;color:var(--muted);background:var(--surface2);border-radius:10px;padding:1px 6px;min-width:18px;text-align:center;}
+.add-btn{display:flex;align-items:center;gap:4px;padding:3px 9px;border-radius:6px;border:1px solid;background:transparent;font-size:10px;font-weight:700;cursor:pointer;font-family:'Lato',sans-serif;transition:all .2s;opacity:.7;}
+.add-btn:hover{opacity:1;background:#ffffff08;}
+
+/* NODE INPUT ROWS */
+.node-inputs{display:flex;flex-direction:column;gap:4px;}
+.node-row{display:flex;align-items:center;gap:5px;animation:fadeIn .25s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
+.node-row.pool-row{}
+.node-row.custom-row .node-input{border-style:dashed;}
+.emoji-btn{font-size:13px;width:22px;text-align:center;flex-shrink:0;background:none;border:none;cursor:pointer;padding:0;line-height:1;transition:transform .15s;}
+.emoji-btn:hover{transform:scale(1.3);}
+.node-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:#fff;font-size:11px;font-family:'Lato',sans-serif;transition:border-color .2s;outline:none;}
+.node-input:focus{border-color:var(--purple);}
+.node-input:hover:not(:focus){border-color:#444;}
+.del-btn{background:none;border:none;color:#444;font-size:15px;cursor:pointer;padding:0 1px;line-height:1;transition:color .15s;flex-shrink:0;}
+.del-btn:hover{color:var(--red);}
+
+/* CANVAS */
+.canvas-wrap{position:relative;overflow:hidden;background:var(--bg);}
+#mc{display:block;width:100%;height:100%;}
+#tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 13px;max-width:215px;display:none;z-index:10;box-shadow:0 8px 32px #00000080;}
+#tip.vis{display:block;}
+#tip .tn{font-size:13px;font-weight:700;margin-bottom:3px;}
+#tip .tt{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+#tip .tb{font-size:11px;color:var(--text);line-height:1.55;}
+#tip .ts{font-size:11px;font-weight:700;color:var(--green);margin-top:5px;}
+@keyframes pr{0%{transform:translate(-50%,-50%) scale(1);opacity:.3;}100%{transform:translate(-50%,-50%) scale(1.9);opacity:0;}}
+.pr{position:absolute;width:86px;height:86px;border-radius:50%;border:2px solid #7c6af7;transform:translate(-50%,-50%);animation:pr 3s ease-out infinite;pointer-events:none;}
+.pr:nth-child(2){animation-delay:.9s;}.pr:nth-child(3){animation-delay:1.8s;}
+
+/* RIGHT PANEL */
+.right-panel{background:var(--surface);border-left:1px solid var(--border);padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;}
+.right-panel::-webkit-scrollbar{width:4px;}
+.right-panel::-webkit-scrollbar-thumb{background:#2a2d35;border-radius:2px;}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.ms{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px;text-align:center;}
+.ms-n{font-size:22px;font-weight:900;line-height:1;margin-bottom:2px;transition:all .3s;}
+.ms-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;}
+.feed{display:flex;flex-direction:column;gap:5px;}
+.fi{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:10px;line-height:1.5;color:var(--text);opacity:0;transform:translateY(-5px);transition:all .3s ease;border-left:3px solid transparent;}
+.fi.vis{opacity:1;transform:translateY(0);}
+.fi .fo{font-weight:700;}.fi .fa{color:var(--muted);}.fi .ft{color:var(--muted);font-size:9px;}
+
+/* BOTTOMBAR */
+.bot{grid-column:1/-1;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 22px;}
+.bot-mid{font-size:11px;color:var(--muted);font-style:italic;}
+.bot-r span{color:var(--yellow);font-weight:700;font-size:11px;}
+.bot-r{font-size:11px;color:var(--muted);}
+
+/* ── LOGIN GATE ── */
+#login-gate{
+  position:fixed;inset:0;background:#350d36;z-index:9999;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Lato',-apple-system,sans-serif;
+  transition:opacity .5s ease;
+}
+.lg-card{
+  background:#4A154B;border:1px solid #ffffff20;border-radius:16px;
+  padding:44px 52px;width:400px;text-align:center;
+  box-shadow:0 24px 80px #00000099;
+}
+.lg-logo{font-size:34px;font-weight:900;color:#fff;letter-spacing:-1.5px;margin-bottom:4px;}
+.lg-logo span{color:#ECB22E;}
+.lg-sub{font-size:12px;color:#c8a8ff;font-weight:700;margin-bottom:30px;letter-spacing:.8px;text-transform:uppercase;}
+.lg-err{
+  display:none;background:#E01E5A18;border:1px solid #E01E5A44;
+  border-radius:8px;padding:9px 12px;font-size:12px;color:#ff6b9d;
+  margin-bottom:16px;
+}
+.lg-inp{
+  width:100%;background:#ffffff10;border:1px solid #ffffff22;
+  border-radius:8px;padding:12px 15px;color:#fff;font-size:13px;
+  font-family:'Lato',sans-serif;outline:none;margin-bottom:10px;
+  box-sizing:border-box;transition:border-color .2s;
+}
+.lg-inp:focus{border-color:#ECB22E;}
+.lg-inp::placeholder{color:#ffffff44;}
+.lg-btn{
+  width:100%;background:#ECB22E;border:none;border-radius:8px;
+  padding:13px;font-size:14px;font-weight:900;color:#2d0e2e;
+  font-family:'Lato',sans-serif;cursor:pointer;
+  transition:background .2s,transform .1s;letter-spacing:.3px;
+  margin-top:8px;
+}
+.lg-btn:hover{background:#f5ca40;}
+.lg-btn:active{transform:scale(.98);}
+.lg-footer{font-size:10px;color:#ffffff28;margin-top:22px;}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN GATE ══ -->
+<div id="login-gate">
+  <div class="lg-card">
+    <div class="lg-logo">slack<span>.</span></div>
+    <div class="lg-sub">Connect — Network Effect</div>
+    <div class="lg-err" id="lg-err">Incorrect credentials. Please try again.</div>
+    <input class="lg-inp" id="lg-user" type="text" placeholder="Username" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
+    <input class="lg-inp" id="lg-pass" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="lg-btn" onclick="doLogin()">Sign In</button>
+    <div class="lg-footer">Built by B.Dsouza · Slack</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var _u='SlackANZ2026', _p='NetworkWow';
+  var gate=document.getElementById('login-gate');
+  if(sessionStorage.getItem('_slk')==='ok'){ gate.style.display='none'; }
+  window.doLogin=function(){
+    var u=document.getElementById('lg-user').value;
+    var p=document.getElementById('lg-pass').value;
+    if(u===_u && p===_p){
+      sessionStorage.setItem('_slk','ok');
+      gate.style.opacity='0';
+      setTimeout(function(){ gate.style.display='none'; }, 500);
+    } else {
+      document.getElementById('lg-err').style.display='block';
+      document.getElementById('lg-pass').value='';
+      document.getElementById('lg-pass').focus();
+    }
+  };
+})();
+</script>
+
+<!-- ══ APP ══ -->
+<div class="layout">
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="t-left">
+    <div class="logo">slack<span>.</span></div>
+    <div class="t-div"></div>
+    <div class="t-title">Slack Connect — The Network Effect</div>
+  </div>
+  <div class="t-right">
+    <div class="stat-pill">🔗 Orgs <span class="num" id="s-orgs">—</span></div>
+    <div class="stat-pill">⚡ AI Actions/day <span class="num" id="s-actions">—</span></div>
+    <div class="stat-pill">🌐 Signals/min <span class="num" id="s-sigs">—</span></div>
+    <div class="stat-pill">👥 People Reached <span class="num" id="s-reach">—</span></div>
+  </div>
+</header>
+
+<!-- LEFT PANEL -->
+<aside class="left-panel">
+  <div class="panel-tabs">
+    <button class="ptab active" onclick="switchTab('view',this)">🗺 View</button>
+    <button class="ptab" onclick="switchTab('edit',this)">⚙️ Configure</button>
+  </div>
+
+  <!-- VIEW TAB -->
+  <div class="panel-body" id="tab-view">
+    <div class="p-label">Node Types</div>
+    <div class="leg-list">
+      <div class="leg-item on" onclick="legFilter('all',this)">
+        <div class="leg-dot" style="background:#7c6af7"></div>
+        <div><div class="leg-name">All Nodes</div><div class="leg-sub">Show full network</div></div>
+      </div>
+      <div class="leg-item" onclick="legFilter('customer',this)">
+        <div class="leg-dot" style="background:#4ade80"></div>
+        <div><div class="leg-name">Customers</div><div class="leg-sub" id="lct-c">—</div></div>
+      </div>
+      <div class="leg-item" onclick="legFilter('partner',this)">
+        <div class="leg-dot" style="background:#38bdf8"></div>
+        <div><div class="leg-name">Partners &amp; Resellers</div><div class="leg-sub" id="lct-p">—</div></div>
+      </div>
+      <div class="leg-item" onclick="legFilter('vendor',this)">
+        <div class="leg-dot" style="background:#ECB22E"></div>
+        <div><div class="leg-name">Vendors &amp; Suppliers</div><div class="leg-sub" id="lct-v">—</div></div>
+      </div>
+      <div class="leg-item" onclick="legFilter('agent',this)">
+        <div class="leg-dot" style="background:#E01E5A"></div>
+        <div><div class="leg-name">AI Agents</div><div class="leg-sub" id="lct-a">—</div></div>
+      </div>
+      <div class="leg-item" onclick="legFilter('app',this)">
+        <div class="leg-dot" style="background:#c084fc"></div>
+        <div><div class="leg-name">Apps &amp; Data</div><div class="leg-sub" id="lct-ap">—</div></div>
+      </div>
+    </div>
+    <div class="p-label">Scenarios</div>
+    <div class="scene-btns">
+      <button class="scene-btn on" onclick="setScene(this)">🌐 Full Network</button>
+      <button class="scene-btn" onclick="setScene(this)">💼 Active Deal Room</button>
+      <button class="scene-btn" onclick="setScene(this)">🧠 AI Agent Layer</button>
+      <button class="scene-btn" onclick="setScene(this)">📊 Data &amp; Apps</button>
+    </div>
+  </div>
+
+  <!-- CONFIGURE TAB -->
+  <div class="panel-body" id="tab-edit" style="display:none">
+
+    <!-- Quality slider -->
+    <div class="quality-wrap">
+      <div class="q-header">
+        <div class="q-title">Network Scale</div>
+        <div class="q-badge" id="q-badge">Scale</div>
+      </div>
+      <input type="range" class="q-slider" id="q-slider" min="1" max="5" value="3" oninput="setQuality(+this.value)">
+      <div class="q-levels">
+        <span class="q-lev" id="ql-1">Startup</span>
+        <span class="q-lev" id="ql-2">Growth</span>
+        <span class="q-lev cur" id="ql-3">Scale</span>
+        <span class="q-lev" id="ql-4">Enterprise</span>
+        <span class="q-lev" id="ql-5">Global</span>
+      </div>
+      <div class="q-summary" id="q-summary"></div>
+    </div>
+
+    <!-- Slackbot card -->
+    <div class="slackbot-section">
+      <div class="sb-top">
+        <div class="sb-icon">⚡</div>
+        <div class="sb-info">
+          <div class="sb-name-row">
+            <div class="sb-name">Slackbot</div>
+            <span class="sb-tag">NATIVE</span>
+          </div>
+          <div class="sb-desc">Slack's always-on native assistant — runs inside Slack's own infrastructure. Zero latency, no API keys, works across every Connect channel from day one.</div>
+        </div>
+      </div>
+      <div class="sb-toggle-row">
+        <label class="sb-toggle">
+          <input type="checkbox" id="sb-chk" onchange="toggleSlackbot(this.checked)">
+          <span class="sb-slider-t"></span>
+        </label>
+        <span class="sb-lbl" id="sb-lbl">Add to network</span>
+      </div>
+      <div class="sb-bullets" id="sb-bullets">
+        <div class="sb-bullet">Routes inbound buyer questions to the right AE instantly, in any Connect channel</div>
+        <div class="sb-bullet">Triggers onboarding workflows the moment a new org joins via Slack Connect</div>
+        <div class="sb-bullet">Answers FAQs from partners and vendors without any human involvement</div>
+        <div class="sb-bullet">Escalates urgent signals with one-tap acknowledge buttons</div>
+        <div class="sb-bullet">No external API — fully governed by your Slack Enterprise policies</div>
+      </div>
+    </div>
+
+    <!-- AI AGENTS -->
+    <div class="node-section">
+      <div class="ns-header">
+        <div class="ns-left">
+          <div class="ns-dot" style="background:#E01E5A"></div>
+          <div class="ns-title">AI Agents</div>
+          <span class="ns-count" id="nc-agent">0</span>
+        </div>
+        <button class="add-btn" style="color:#E01E5A;border-color:#E01E5A44" onclick="addCustom('agent')">+ Add</button>
+      </div>
+      <div class="node-inputs" id="inputs-agent"></div>
+    </div>
+
+    <!-- CUSTOMERS -->
+    <div class="node-section">
+      <div class="ns-header">
+        <div class="ns-left">
+          <div class="ns-dot" style="background:#4ade80"></div>
+          <div class="ns-title">Customers</div>
+          <span class="ns-count" id="nc-customer">0</span>
+        </div>
+        <button class="add-btn" style="color:#4ade80;border-color:#4ade8044" onclick="addCustom('customer')">+ Add</button>
+      </div>
+      <div class="node-inputs" id="inputs-customer"></div>
+    </div>
+
+    <!-- PARTNERS -->
+    <div class="node-section">
+      <div class="ns-header">
+        <div class="ns-left">
+          <div class="ns-dot" style="background:#38bdf8"></div>
+          <div class="ns-title">Partners</div>
+          <span class="ns-count" id="nc-partner">0</span>
+        </div>
+        <button class="add-btn" style="color:#38bdf8;border-color:#38bdf844" onclick="addCustom('partner')">+ Add</button>
+      </div>
+      <div class="node-inputs" id="inputs-partner"></div>
+    </div>
+
+    <!-- VENDORS -->
+    <div class="node-section">
+      <div class="ns-header">
+        <div class="ns-left">
+          <div class="ns-dot" style="background:#ECB22E"></div>
+          <div class="ns-title">Vendors</div>
+          <span class="ns-count" id="nc-vendor">0</span>
+        </div>
+        <button class="add-btn" style="color:#ECB22E;border-color:#ECB22E44" onclick="addCustom('vendor')">+ Add</button>
+      </div>
+      <div class="node-inputs" id="inputs-vendor"></div>
+    </div>
+
+    <!-- APPS -->
+    <div class="node-section">
+      <div class="ns-header">
+        <div class="ns-left">
+          <div class="ns-dot" style="background:#c084fc"></div>
+          <div class="ns-title">Apps &amp; Data</div>
+          <span class="ns-count" id="nc-app">0</span>
+        </div>
+        <button class="add-btn" style="color:#c084fc;border-color:#c084fc44" onclick="addCustom('app')">+ Add</button>
+      </div>
+      <div class="node-inputs" id="inputs-app"></div>
+    </div>
+
+  </div>
+</aside>
+
+<!-- CANVAS -->
+<main class="canvas-wrap" id="cw">
+  <div class="pr"></div><div class="pr"></div><div class="pr"></div>
+  <canvas id="mc"></canvas>
+  <div id="tip">
+    <div class="tn" id="tn"></div>
+    <div class="tt" id="tt"></div>
+    <div class="tb" id="tb"></div>
+    <div class="ts" id="ts"></div>
+  </div>
+</main>
+
+<!-- RIGHT PANEL -->
+<aside class="right-panel">
+  <div class="p-label">Live Network Stats</div>
+  <div class="stat-grid">
+    <div class="ms"><div class="ms-n" style="color:#4ade80" id="ms-deals">—</div><div class="ms-l">Active Deals</div></div>
+    <div class="ms"><div class="ms-n" style="color:#ECB22E" id="ms-msgs">—</div><div class="ms-l">AI Messages</div></div>
+    <div class="ms"><div class="ms-n" style="color:#7c6af7" id="ms-saved">—</div><div class="ms-l">Hours Saved</div></div>
+    <div class="ms"><div class="ms-n" style="color:#38bdf8" id="ms-ext">—</div><div class="ms-l">Ext. Channels</div></div>
+    <div class="ms"><div class="ms-n" style="color:#E01E5A" id="ms-sig">—</div><div class="ms-l">Signals Today</div></div>
+    <div class="ms"><div class="ms-n" style="color:#c084fc" id="ms-nv">—</div><div class="ms-l">Network Value</div></div>
+  </div>
+  <div class="p-label" style="margin-top:2px">Activity Feed</div>
+  <div class="feed" id="feed"></div>
+</aside>
+
+<!-- BOTTOMBAR -->
+<footer class="bot">
+  <div style="font-size:11px;color:var(--muted)"><strong style="color:#fff">Hover</strong> to explore · <strong style="color:#fff">Configure</strong> tab to edit names &amp; add nodes · <strong style="color:#fff">Scale</strong> slider changes network size</div>
+  <div class="bot-mid">"Every new org in your network multiplies the intelligence of every agent."</div>
+  <div class="bot-r">Built by <span>B.Dsouza · Slack</span></div>
+</footer>
+</div>
+
+<script>
+// ══════════════════════════════════
+//  DATA  — full node pools
+// ══════════════════════════════════
+const POOL = {
+  agent: [
+    { id:'ag1', emoji:'🧠', label:'Claude',      tip:{b:'Deal intelligence, sentiment monitoring, pre-call briefings and real-time buyer coaching across all shared channels.',s:'47 insights generated today'} },
+    { id:'ag2', emoji:'⚡', label:'Codex',       tip:{b:'CRM automation, MEDDIC extraction, post-call summaries and follow-up drafts — triggered automatically after every call.',s:'31 automations run today'} },
+    { id:'ag3', emoji:'🤖', label:'Custom Agent',tip:{b:'Your team\'s custom workflow bot — automates deal routing, approvals and escalations without ever leaving Slack.',s:'14 workflows active'} },
+  ],
+  customer: [
+    { id:'c1',  emoji:'🏢', label:'Acme Corp',   tip:{b:'Active deal. Claude monitors sentiment daily. CTO posted about stack modernisation — lead with migration ROI.',s:'💬 23 messages this week'} },
+    { id:'c2',  emoji:'🏭', label:'Globex',      tip:{b:'Renewal in 60 days. Codex auto-generated EBR. Champion highly engaged — 3 replies overnight.',s:'📊 EBR sent 3 days ago'} },
+    { id:'c3',  emoji:'💡', label:'Initech',     tip:{b:'New logo. Champion sent 4 follow-up messages overnight. High-intent signal flagged by Claude.',s:'🟢 High intent — act today'} },
+    { id:'c4',  emoji:'🚀', label:'Hooli',       tip:{b:'Expansion opportunity. 3 new departments requesting access. Codex drafted upsell proposal.',s:'⬆️ +3 dept expansion flagged'} },
+    { id:'c5',  emoji:'📡', label:'Verizon',     tip:{b:'Enterprise strategic account. QBR scheduled Friday. Claude prepping agenda and exec talking points.',s:'📅 QBR prep in progress'} },
+    { id:'c6',  emoji:'💳', label:'Stripe',      tip:{b:'Fast-growth fintech. Security review requested — Claude auto-shared SOC 2 docs within 2 minutes.',s:'🔒 Security docs shared'} },
+    { id:'c7',  emoji:'🛒', label:'Shopify',     tip:{b:'Post-sale onboarding. Claude coordinating kickoff with SI Partner and sharing context briefings.',s:'🤝 Kickoff in 3 days'} },
+    { id:'c8',  emoji:'📝', label:'Notion',      tip:{b:'Early stage. Champion booked demo via Slack Connect. Codex pulling firmographic data from CRM.',s:'🗓️ Demo booked'} },
+    { id:'c9',  emoji:'🏦', label:'Goldman',     tip:{b:'Financial services. FedRAMP compliant channel. Codex generates compliance-formatted summaries.',s:'🛡️ FedRAMP channel active'} },
+    { id:'c10', emoji:'🚗', label:'Tesla',       tip:{b:'New logo. AE used /prep-call — Claude delivered full brief including supply chain news in 8 seconds.',s:'⚡ Brief in 8 seconds'} },
+    { id:'c11', emoji:'✈️', label:'Delta',       tip:{b:'Renewal negotiation. Claude detected risk — no exec engagement in 14 days. Escalation triggered.',s:'⚠️ Risk flagged today'} },
+    { id:'c12', emoji:'💊', label:'Pfizer',      tip:{b:'HIPAA-compliant channel. Medical data handling policies applied to all AI agent responses.',s:'🏥 HIPAA compliant'} },
+    { id:'c13', emoji:'🌐', label:'Meta',        tip:{b:'Global expansion. 12 Slack Connect channels across 4 regions. Claude managing all threads.',s:'🌐 12 regional channels'} },
+    { id:'c14', emoji:'🔋', label:'Rivian',      tip:{b:'Startup segment. 3 days ahead of average deal cadence. Codex tracking task velocity.',s:'🏃 3 days ahead of pace'} },
+    { id:'c15', emoji:'🎵', label:'Spotify',     tip:{b:'EMEA customer. Data residency requirements met. All Connect traffic routed through EU region.',s:'🌍 EU data residency active'} },
+    { id:'c16', emoji:'🎮', label:'Epic Games',  tip:{b:'Gaming enterprise. 5 executive stakeholders. Claude mapping influence and tracking each relationship.',s:'👥 5 exec contacts mapped'} },
+  ],
+  partner: [
+    { id:'p1', emoji:'🎨', label:'Agency A',    tip:{b:'Creative agency. Receives AI-generated campaign briefs via Codex. 4 active projects in shared channel.',s:'📨 4 briefs this month'} },
+    { id:'p2', emoji:'🔄', label:'Reseller B',  tip:{b:'Regional reseller. Auto-briefed on deal updates by Codex. 2 co-sell opportunities active.',s:'🤝 2 active co-sells'} },
+    { id:'p3', emoji:'🔧', label:'SI Partner',  tip:{b:'Systems integrator. Receives customer context pre-kickoff. Claude coordinates all handoffs.',s:'⚙️ 3 implementations live'} },
+    { id:'p4', emoji:'📦', label:'Distributor', tip:{b:'APAC distributor. Gets real-time deal status updates from Codex. Zero manual reporting.',s:'🌏 APAC pipeline synced'} },
+    { id:'p5', emoji:'🎓', label:'GSI Partner', tip:{b:'Global SI. Claude generates joint GTM briefs combining data from both orgs\' systems.',s:'🌎 Joint GTM brief active'} },
+    { id:'p6', emoji:'📊', label:'Analytics Co',tip:{b:'Analytics partner. Performance data pulled into shared channel. Codex summarises weekly.',s:'📈 Weekly digest live'} },
+    { id:'p7', emoji:'🔐', label:'Security ISV',tip:{b:'Security ISV. Joint customers get integrated security + comms via Slack Connect.',s:'🛡️ 5 joint customers'} },
+    { id:'p8', emoji:'🌱', label:'Startup ISV', tip:{b:'Early-stage partner. Claude monitors product releases and surfaces relevant updates to AEs.',s:'📡 Product signals tracked'} },
+  ],
+  vendor: [
+    { id:'v1', emoji:'⚖️', label:'Legal',       tip:{b:'External legal. Reviews MSAs in shared Connect channel. DLP policies active throughout.',s:'📋 2 contracts under review'} },
+    { id:'v2', emoji:'💰', label:'Finance',     tip:{b:'Deal desk. Approves discounting in-thread. Codex formats all deal desk requests automatically.',s:'✅ 5 approvals this week'} },
+    { id:'v3', emoji:'🔒', label:'InfoSec',     tip:{b:'Security partner. Claude auto-shares SOC 2 and data residency docs on buyer request.',s:'🛡️ SOC2 shared 8 times'} },
+    { id:'v4', emoji:'🧾', label:'Procurement', tip:{b:'PO tracking and approval workflows run entirely inside shared Slack channels.',s:'📦 3 POs in flight'} },
+    { id:'v5', emoji:'🏥', label:'Compliance',  tip:{b:'Regulatory compliance. All AI outputs logged and auditable. eDiscovery-ready channel.',s:'📋 Full audit trail active'} },
+    { id:'v6', emoji:'🏗️', label:'Engineering', tip:{b:'External engineering. Receives product requirement briefs from Claude based on deal signals.',s:'🔨 2 custom builds scoped'} },
+  ],
+  app: [
+    { id:'a1', emoji:'☁️', label:'Salesforce', tip:{b:'Pipeline data synced in real time. Codex reads and writes CRM on behalf of every AE.',s:'📈 Real-time pipeline sync'} },
+    { id:'a2', emoji:'📅', label:'Calendar',   tip:{b:'Upcoming meetings trigger pre-call briefs from Claude automatically. Zero manual action.',s:'🗓️ 6 briefs queued today'} },
+    { id:'a3', emoji:'📄', label:'Drive / Docs',tip:{b:'Playbooks, security docs and proposals — auto-surfaced by Claude in deal channels on demand.',s:'📂 12 docs shared this week'} },
+    { id:'a4', emoji:'🎙️', label:'Call Intel', tip:{b:'Call transcripts feed to Codex for MEDDIC extraction and Salesforce updates post-call.',s:'📝 8 calls processed today'} },
+    { id:'a5', emoji:'📧', label:'Gmail',      tip:{b:'Email thread sentiment analysed by Claude. Key signals surfaced to AE in deal channel.',s:'📬 14 threads monitored'} },
+    { id:'a6', emoji:'📊', label:'Tableau',    tip:{b:'Pipeline analytics pushed into Slack. Claude generates narrative insights from raw data.',s:'📊 Weekly digest auto-sent'} },
+  ],
+};
+
+const QLEVEL = {
+  1:{ name:'Startup',    agent:1, customer:2,  partner:1, vendor:1, app:2,  mult:1    },
+  2:{ name:'Growth',     agent:2, customer:4,  partner:2, vendor:2, app:3,  mult:2.2  },
+  3:{ name:'Scale',      agent:2, customer:6,  partner:3, vendor:3, app:4,  mult:4.8  },
+  4:{ name:'Enterprise', agent:3, customer:10, partner:5, vendor:4, app:5,  mult:10.5 },
+  5:{ name:'Global',     agent:3, customer:16, partner:8, vendor:6, app:6,  mult:24   },
+};
+
+const SB_NODE = {
+  id:'slackbot', type:'agent', emoji:'⚡', label:'Slackbot', isSlackbot:true,
+  tip:{b:'Slack\'s native always-on assistant. Routes buyer questions, triggers onboarding flows, answers partner FAQs and escalates signals — governed by your enterprise policies, zero external API.',s:'🟡 Native · Zero latency · Policy-compliant'}
+};
+
+// ── State ──
+let quality    = 3;
+let sbOn       = false;
+let hiddenPool = new Set();
+let customNodes= [];
+let labelMap   = {};
+let emojiMap   = {};
+let customIdN  = 1000;
+
+let AN = [];
+let ANG= {};
+
+const NT = {
+  hub:     {color:'#7c6af7',glow:'#7c6af755',stroke:'#a78bfa',r:38},
+  customer:{color:'#4ade80',glow:'#4ade8033',stroke:'#4ade80',r:20},
+  partner: {color:'#38bdf8',glow:'#38bdf833',stroke:'#38bdf8',r:17},
+  vendor:  {color:'#ECB22E',glow:'#ECB22E33',stroke:'#ECB22E',r:15},
+  agent:   {color:'#E01E5A',glow:'#E01E5A44',stroke:'#ff6b9d',r:20},
+  app:     {color:'#c084fc',glow:'#c084fc33',stroke:'#c084fc',r:15},
+};
+const SB_NT = {color:'#ECB22E',glow:'#ECB22E55',stroke:'#ffd700',r:22};
+const ORBIT  = {hub:0, agent:1, customer:1, partner:2, vendor:2, app:3};
+const ORB_R_BASE = [0,130,210,295];
+const SPD    = [0, 0.00010,-0.00007,0.00005];
+let orbR     = [...ORB_R_BASE];
+
+function resolveLabel(n){ return labelMap[n.id] ?? n.label; }
+function resolveEmoji(n){ return emojiMap[n.id] ?? n.emoji; }
+
+function rebuild(){
+  const q = QLEVEL[quality];
+  AN = [];
+
+  AN.push({id:'hub',type:'hub',emoji:'🟣',label:'Slack HQ',tip:{b:'The AI-powered command centre. Every signal, every agent, every conversation — unified.',s:'🔗 All orgs connected here'}});
+
+  if(sbOn) AN.push({...SB_NODE, label: resolveLabel(SB_NODE), emoji: resolveEmoji(SB_NODE)});
+
+  const types = ['agent','customer','partner','vendor','app'];
+  types.forEach(type=>{
+    const pool  = POOL[type];
+    const limit = q[type];
+    let   shown = 0;
+    for(let i=0;i<pool.length&&shown<limit;i++){
+      const n=pool[i];
+      if(hiddenPool.has(n.id)) continue;
+      AN.push({...n, type, label:resolveLabel(n), emoji:resolveEmoji(n)});
+      shown++;
+    }
+    customNodes.filter(n=>n.type===type).forEach(n=>{
+      AN.push({...n, label:resolveLabel(n), emoji:resolveEmoji(n)});
+    });
+  });
+
+  const byOrbit={0:[],1:[],2:[],3:[]};
+  AN.forEach(n=>{
+    const o = n.isSlackbot ? 99 : Math.floor(ORBIT[n.type]||0);
+    if(!byOrbit[o]) byOrbit[o]=[];
+    byOrbit[o].push(n.id);
+  });
+  Object.keys(byOrbit).forEach(o=>{
+    const ids=byOrbit[o];
+    ids.forEach((id,i)=>{ if(!(id in ANG)) ANG[id]=(i/ids.length)*Math.PI*2; });
+  });
+
+  const sc=1+(quality-1)*0.12;
+  orbR=ORB_R_BASE.map(r=>r*sc);
+
+  refreshLegend();
+  refreshInputs();
+  refreshStats();
+  refreshQSummary();
+}
+
+function refreshLegend(){
+  const map={customer:'lct-c',partner:'lct-p',vendor:'lct-v',agent:'lct-a',app:'lct-ap'};
+  const names={customer:'customer orgs',partner:'partners',vendor:'vendors',agent:'AI agents',app:'integrations'};
+  Object.keys(map).forEach(t=>{
+    const n=AN.filter(x=>x.type===t||(t==='agent'&&x.isSlackbot)).length;
+    const el=document.getElementById(map[t]); if(el) el.textContent=n+' '+names[t];
+  });
+}
+
+function refreshQSummary(){
+  const q=QLEVEL[quality];
+  const types=[
+    {k:'agent',   label:'Agents', color:'#E01E5A'},
+    {k:'customer',label:'Customers',color:'#4ade80'},
+    {k:'partner', label:'Partners',color:'#38bdf8'},
+    {k:'vendor',  label:'Vendors',color:'#ECB22E'},
+    {k:'app',     label:'Apps',color:'#c084fc'},
+  ];
+  const el=document.getElementById('q-summary');
+  if(!el) return;
+  el.innerHTML=types.map(t=>{
+    const pool=AN.filter(n=>n.type===t.k).length + (sbOn&&t.k==='agent'?1:0);
+    const custom=customNodes.filter(n=>n.type===t.k).length;
+    const base=pool-custom;
+    return `<span class="q-pill" style="color:${t.color};border:1px solid ${t.color}33;background:${t.color}11">${base}${custom>0?`+${custom}`:''} ${t.label}</span>`;
+  }).join('');
+}
+
+const EMOJI_POOLS={
+  agent:  ['🧠','⚡','🤖','🔮','🧬','🌀','🦾','💎'],
+  customer:['🏢','🏭','💡','🚀','📡','💳','🛒','📝','🏦','🚗','✈️','💊','🌐','🔋','🎵','🎮','🎯','💼','🌿','🔬'],
+  partner: ['🎨','🔄','🔧','📦','🎓','📊','🔐','🌱','🤝','🔗','🛠️','🌍'],
+  vendor:  ['⚖️','💰','🔒','🧾','🏥','🏗️','🔬','📋','🗂️','🧮'],
+  app:     ['☁️','📅','📄','🎙️','📧','📊','🗄️','🔌','📱','⚙️'],
+};
+
+function refreshInputs(){
+  const types=['agent','customer','partner','vendor','app'];
+  types.forEach(type=>{
+    const el=document.getElementById('inputs-'+type);
+    const nc=document.getElementById('nc-'+type);
+    if(!el) return;
+    el.innerHTML='';
+
+    const nodes=AN.filter(n=>n.type===type && !n.isSlackbot);
+    if(nc) nc.textContent=nodes.length+(sbOn&&type==='agent'?'+⚡':'');
+
+    nodes.forEach(n=>{
+      const isCustom=!!n.custom;
+      const row=document.createElement('div');
+      row.className='node-row '+(isCustom?'custom-row':'pool-row');
+      row.dataset.id=n.id;
+
+      const em=document.createElement('button');
+      em.className='emoji-btn'; em.title='Change emoji';
+      em.textContent=resolveEmoji(n);
+      em.onclick=()=>cycleEmoji(n.id,type,em);
+
+      const inp=document.createElement('input');
+      inp.className='node-input'; inp.value=resolveLabel(n);
+      inp.placeholder=isCustom?'Enter name…':n.label;
+      inp.dataset.id=n.id;
+      inp.oninput=e=>{ labelMap[n.id]=e.target.value; refreshLegend(); refreshQSummary(); };
+
+      const del=document.createElement('button');
+      del.className='del-btn'; del.title='Remove'; del.textContent='×';
+      del.onclick=()=>{
+        if(isCustom) customNodes=customNodes.filter(x=>x.id!==n.id);
+        else hiddenPool.add(n.id);
+        delete ANG[n.id];
+        rebuild();
+      };
+
+      row.append(em,inp,del);
+      el.appendChild(row);
+    });
+  });
+}
+
+function cycleEmoji(id,type,btn){
+  const pool=EMOJI_POOLS[type]||['⭐'];
+  const cur=pool.indexOf(emojiMap[id]||(AN.find(n=>n.id===id)||{}).emoji||'');
+  const next=pool[(cur+1)%pool.length];
+  emojiMap[id]=next; btn.textContent=next;
+  const n=AN.find(x=>x.id===id); if(n) n.emoji=next;
+}
+
+function addCustom(type){
+  const pool=EMOJI_POOLS[type]||['⭐'];
+  const emoji=pool[Math.floor(Math.random()*pool.length)];
+  const defaults={agent:'New Agent',customer:'New Customer',partner:'New Partner',vendor:'New Vendor',app:'New App'};
+  const id='cx_'+(customIdN++);
+  customNodes.push({id,type,emoji,label:defaults[type]||'New Node',custom:true,
+    tip:{b:'Custom node added to your network. Edit the name to match your organisation.',s:'→ Added just now'}});
+  rebuild();
+  setTimeout(()=>{
+    const inp=document.querySelector(`input[data-id="${id}"]`);
+    if(inp){inp.focus();inp.select();}
+  },60);
+}
+
+function toggleSlackbot(on){
+  sbOn=on;
+  const lbl=document.getElementById('sb-lbl');
+  lbl.textContent=on?'Active on network':'Add to network';
+  lbl.className='sb-lbl'+(on?' on':'');
+  document.getElementById('sb-bullets').className='sb-bullets'+(on?' vis':'');
+  if(on && !(SB_NODE.id in ANG)) ANG[SB_NODE.id]=Math.PI*1.5;
+  rebuild();
+}
+
+function setQuality(q){
+  quality=q;
+  const names={1:'Startup',2:'Growth',3:'Scale',4:'Enterprise',5:'Global'};
+  document.getElementById('q-badge').textContent=names[q];
+  for(let i=1;i<=5;i++) document.getElementById('ql-'+i).className='q-lev'+(i===q?' cur':'');
+  rebuild(); refreshStats(true);
+}
+
+const BASE={orgs:13,actions:78,sigs:240,reach:4200,deals:8,msgs:47,saved:31,ext:17,sig:94};
+
+function animVal(id,target,suffix){
+  const el=document.getElementById(id); if(!el) return;
+  let v=0,t=0;
+  const iv=setInterval(()=>{
+    t+=50; v=Math.min(target,Math.round(target*(t/700)));
+    el.textContent=v.toLocaleString()+(suffix||'');
+    if(v>=target) clearInterval(iv);
+  },40);
+}
+
+function refreshStats(anim){
+  const m=QLEVEL[quality].mult;
+  const extra=1+(customNodes.length*0.1)+(sbOn?0.12:0);
+  const e=m*extra;
+  const vals={
+    's-orgs':  Math.round(BASE.orgs*e*0.6+1),
+    's-actions':Math.round(BASE.actions*e),
+    's-sigs':  Math.round(BASE.sigs*e),
+    's-reach': Math.round(BASE.reach*e),
+    'ms-deals':Math.round(BASE.deals*e*0.5+1),
+    'ms-msgs': Math.round(BASE.msgs*e),
+    'ms-saved':Math.round(BASE.saved*e),
+    'ms-ext':  Math.round(BASE.ext*e*0.6+1),
+    'ms-sig':  Math.round(BASE.sig*e),
+  };
+  Object.entries(vals).forEach(([id,v])=>{
+    const el=document.getElementById(id); if(!el) return;
+    if(anim) animVal(id,v,''); else el.textContent=v.toLocaleString();
+  });
+  const nv=(BASE.orgs*m*m*0.15*extra).toFixed(1);
+  if(anim) animVal('ms-nv',parseFloat(nv),'×');
+  else { const el=document.getElementById('ms-nv'); if(el) el.textContent=nv+'×'; }
+}
+
+function switchTab(tab,el){
+  document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-view').style.display=tab==='view'?'block':'none';
+  document.getElementById('tab-edit').style.display=tab==='edit'?'block':'none';
+}
+function legFilter(type,el){ document.querySelectorAll('.leg-item').forEach(i=>i.classList.remove('on')); el.classList.add('on'); }
+function setScene(el){ document.querySelectorAll('.scene-btn').forEach(b=>b.classList.remove('on')); el.classList.add('on'); }
+
+// ══════════════════════════════════
+//  CANVAS
+// ══════════════════════════════════
+const cw=document.getElementById('cw');
+const canvas=document.getElementById('mc');
+const ctx=canvas.getContext('2d');
+let W,H,CX,CY;
+
+function resize(){
+  const r=cw.getBoundingClientRect();
+  W=canvas.width=r.width; H=canvas.height=r.height;
+  CX=W/2; CY=H/2;
+  document.querySelectorAll('.pr').forEach(p=>{p.style.left=CX+'px';p.style.top=CY+'px';});
+}
+resize(); window.addEventListener('resize',resize);
+
+let pulses=[], hoverId=null;
+setInterval(()=>{
+  const nonHub=AN.filter(n=>n.id!=='hub');
+  if(!nonHub.length) return;
+  const nb=nonHub[Math.floor(Math.random()*nonHub.length)];
+  const rev=Math.random()>.65;
+  pulses.push({a:rev?nb.id:'hub',b:rev?'hub':nb.id,p:0,s:.004+Math.random()*.009});
+  if(Math.random()>.75&&nonHub.length>2){
+    const a2=nonHub[Math.floor(Math.random()*nonHub.length)];
+    const b2=nonHub[Math.floor(Math.random()*nonHub.length)];
+    if(a2.id!==b2.id) pulses.push({a:a2.id,b:b2.id,p:0,s:.005+Math.random()*.008});
+  }
+},170);
+
+function getN(id){ return AN.find(n=>n.id===id); }
+function nPos(n){
+  if(n.id==='hub') return {x:CX,y:CY};
+  if(n.isSlackbot){ const r=70*(1+(quality-1)*0.12), a=ANG[n.id]||0; return {x:CX+Math.cos(a)*r,y:CY+Math.sin(a)*r}; }
+  const o=ORBIT[n.type]||1, r=orbR[o]||130, a=ANG[n.id]||0;
+  return {x:CX+Math.cos(a)*r,y:CY+Math.sin(a)*r};
+}
+
+let last=0;
+function draw(ts){
+  const dt=Math.min(ts-last,50); last=ts;
+  AN.forEach(n=>{
+    if(n.id==='hub') return;
+    if(n.isSlackbot){ ANG[n.id]=(ANG[n.id]||0)+0.00018*dt; return; }
+    const o=ORBIT[n.type]||1;
+    ANG[n.id]=(ANG[n.id]||0)+SPD[o]*dt;
+  });
+
+  ctx.clearRect(0,0,W,H);
+
+  [1,2,3].forEach(i=>{
+    ctx.beginPath(); ctx.arc(CX,CY,orbR[i],0,Math.PI*2);
+    ctx.strokeStyle='#ffffff06'; ctx.lineWidth=1;
+    ctx.setLineDash([3,9]); ctx.stroke(); ctx.setLineDash([]);
+  });
+  if(sbOn){
+    ctx.beginPath(); ctx.arc(CX,CY,70*(1+(quality-1)*0.12),0,Math.PI*2);
+    ctx.strokeStyle='#ECB22E18'; ctx.lineWidth=1;
+    ctx.setLineDash([2,7]); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  AN.forEach(n=>{
+    if(n.id==='hub') return;
+    const p2=nPos(n);
+    const hi=hoverId&&(hoverId===n.id||hoverId==='hub');
+    const fd=hoverId&&!hi;
+    ctx.beginPath(); ctx.moveTo(CX,CY); ctx.lineTo(p2.x,p2.y);
+    ctx.strokeStyle=hi?(n.isSlackbot?'#ECB22E28':'#7c6af728'):fd?'#ffffff03':'#ffffff09';
+    ctx.lineWidth=hi?1.5:1; ctx.stroke();
+  });
+
+  pulses=pulses.filter(p=>p.p<=1);
+  pulses.forEach(p=>{
+    const na=getN(p.a),nb=getN(p.b);
+    if(!na||!nb){p.p+=p.s;return;}
+    const pa=nPos(na),pb=nPos(nb);
+    const px=pa.x+(pb.x-pa.x)*p.p, py=pa.y+(pb.y-pa.y)*p.p;
+    if(!(hoverId&&hoverId!==na.id&&hoverId!==nb.id&&hoverId!=='hub')){
+      const nt2=nb.isSlackbot?SB_NT:NT[nb.type];
+      ctx.beginPath(); ctx.arc(px,py,3,0,Math.PI*2);
+      ctx.fillStyle=nt2.color; ctx.shadowColor=nt2.color; ctx.shadowBlur=10;
+      ctx.fill(); ctx.shadowBlur=0;
+    }
+    p.p+=p.s;
+  });
+
+  AN.forEach(n=>{
+    const pos=nPos(n);
+    const nt=n.isSlackbot?SB_NT:NT[n.type];
+    const isH=hoverId===n.id;
+    const isFd=hoverId&&!isH&&n.id!=='hub';
+    const r=nt.r*(isH?1.2:1);
+    ctx.globalAlpha=isFd?.22:1;
+
+    const g=ctx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,r*3);
+    g.addColorStop(0,isH?nt.glow.replace(/[\d.]+\)$/,'.5)'):nt.glow);
+    g.addColorStop(1,'transparent');
+    ctx.beginPath(); ctx.arc(pos.x,pos.y,r*3,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+
+    ctx.beginPath(); ctx.arc(pos.x,pos.y,r,0,Math.PI*2);
+    ctx.fillStyle=n.type==='hub'?nt.color:(n.isSlackbot?'#ECB22E20':nt.color+'1a');
+    if(isH){ctx.shadowColor=nt.color;ctx.shadowBlur=24;}
+    ctx.strokeStyle=nt.stroke; ctx.lineWidth=(n.type==='hub'||n.isSlackbot)?3:2;
+    ctx.fill(); ctx.stroke(); ctx.shadowBlur=0;
+
+    ctx.font=`${r*.9}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(n.emoji,pos.x,pos.y);
+
+    ctx.font=`${n.type==='hub'?'bold 11':'10'}px Lato,sans-serif`;
+    ctx.fillStyle=isH?'#fff':(n.isSlackbot?'#ffd700':'#c5c5cf');
+    ctx.textBaseline='top';
+    ctx.fillText(resolveLabel(n),pos.x,pos.y+r+5);
+
+    ctx.globalAlpha=1;
+  });
+
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+// ── Tooltip ──
+const tip=document.getElementById('tip');
+canvas.addEventListener('mousemove',e=>{
+  const rect=canvas.getBoundingClientRect();
+  const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  let found=null;
+  AN.forEach(n=>{
+    const pos=nPos(n);
+    const nt=n.isSlackbot?SB_NT:NT[n.type];
+    if(Math.hypot(mx-pos.x,my-pos.y)<nt.r+8) found=n;
+  });
+  hoverId=found?found.id:null;
+  if(found){
+    tip.classList.add('vis');
+    const nt2=found.isSlackbot?SB_NT:NT[found.type];
+    document.getElementById('tn').textContent=resolveLabel(found);
+    document.getElementById('tn').style.color=nt2.stroke;
+    const tl={hub:'Command Centre',customer:'Customer Org',partner:'Partner',vendor:'Vendor',agent:'AI Agent',app:'App Integration'};
+    document.getElementById('tt').textContent=found.isSlackbot?'Native Slackbot':(tl[found.type]||'Node');
+    document.getElementById('tt').style.color=nt2.color;
+    document.getElementById('tb').textContent=found.tip.b;
+    document.getElementById('ts').textContent='→ '+found.tip.s;
+    let tx=mx+16,ty=my-10;
+    if(tx+225>W) tx=mx-240; if(ty+140>H) ty=my-140;
+    tip.style.left=tx+'px'; tip.style.top=ty+'px';
+  } else tip.classList.remove('vis');
+  canvas.style.cursor=found?'pointer':'default';
+});
+canvas.addEventListener('mouseleave',()=>{hoverId=null;tip.classList.remove('vis');});
+
+// ── Activity feed ──
+const feedEl=document.getElementById('feed');
+const FEED_I=[
+  {c:'#4ade80',o:'Acme Corp',    a:'joined deal room via Slack Connect'},
+  {c:'#E01E5A',o:'Claude',       a:'flagged urgency signal in #deal-acme'},
+  {c:'#38bdf8',o:'Reseller B',   a:'received deal brief from Codex'},
+  {c:'#ECB22E',o:'Codex',        a:'updated Salesforce MEDDIC — Hooli'},
+  {c:'#c084fc',o:'Initech',      a:'champion replied overnight — high intent'},
+  {c:'#4ade80',o:'Verizon',      a:'QBR agenda approved by stakeholder'},
+  {c:'#E01E5A',o:'Claude',       a:'pre-call brief delivered to Sarah Chen'},
+  {c:'#38bdf8',o:'SI Partner',   a:'kickoff context auto-shared by Claude'},
+];
+FEED_I.forEach((f,i)=>{
+  const el=document.createElement('div'); el.className='fi'; el.style.borderLeftColor=f.c;
+  el.innerHTML=`<span class="fo">${f.o}</span> <span class="fa">${f.a}</span><br><span class="ft">${i===0?'just now':i*2+'m ago'}</span>`;
+  feedEl.appendChild(el);
+  setTimeout(()=>el.classList.add('vis'),700+i*200);
+});
+const FEED_N=[
+  {c:'#4ade80',o:'Globex',     a:'opened security doc shared by Claude'},
+  {c:'#ECB22E',o:'Codex',      a:'drafted follow-up email — Initech'},
+  {c:'#E01E5A',o:'Claude',     a:'deal coaching tip sent in #deal-hooli'},
+  {c:'#38bdf8',o:'Agency A',   a:'campaign brief received and acknowledged'},
+  {c:'#c084fc',o:'Finance',    a:'deal desk approval granted — Verizon'},
+  {c:'#ECB22E',o:'Slackbot',   a:'routed InfoSec question to correct AE'},
+  {c:'#4ade80',o:'Stripe',     a:'security review completed via Claude'},
+  {c:'#ECB22E',o:'Codex',      a:'MEDDIC gap auto-flagged — Tesla deal'},
+];
+let fi2=0;
+setInterval(()=>{
+  const customs=customNodes.filter(n=>n.type==='customer');
+  const base=FEED_N[fi2++%FEED_N.length];
+  const f=customs.length>0&&Math.random()>.55
+    ? {c:'#4ade80',o:labelMap[customs[Math.floor(Math.random()*customs.length)].id]||customs[0].label,a:'connected via Slack Connect'}
+    : base;
+  const el=document.createElement('div'); el.className='fi'; el.style.borderLeftColor=f.c;
+  el.innerHTML=`<span class="fo">${f.o}</span> <span class="fa">${f.a}</span><br><span class="ft">just now</span>`;
+  feedEl.insertBefore(el,feedEl.firstChild);
+  setTimeout(()=>el.classList.add('vis'),40);
+  [...feedEl.children].forEach((c,i)=>{
+    const t=c.querySelector('.ft'); if(t&&i>0) t.textContent=`${i*6}s ago`;
+  });
+  if(feedEl.children.length>9) feedEl.removeChild(feedEl.lastChild);
+},5500);
+
+// ── Boot ──
+rebuild();
+setTimeout(()=>refreshStats(true),400);
+</script>
+</body>
+</html>
