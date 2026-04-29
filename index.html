@@ -24,6 +24,14 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-
 .logo span{color:var(--yellow);}
 .t-div{width:1px;height:22px;background:#ffffff25;}
 .t-title{font-size:13px;font-weight:700;color:#e8d5ff;}
+.t-title-input{background:transparent;border:1px solid transparent;border-radius:6px;padding:5px 9px;color:#e8d5ff;font-size:13px;font-weight:700;font-family:'Lato',sans-serif;outline:none;width:300px;transition:all .2s;}
+.t-title-input:hover{background:#ffffff10;border-color:#ffffff20;color:#fff;}
+.t-title-input:focus{background:#ffffff18;border-color:#ECB22E66;color:#fff;}
+.t-title-input::placeholder{color:#e8d5ff55;}
+.pp-btn{display:flex;align-items:center;gap:6px;background:#ffffff12;border:1px solid #ffffff22;border-radius:20px;padding:5px 13px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'Lato',sans-serif;transition:all .2s;}
+.pp-btn:hover{background:#ffffff22;border-color:#ECB22E66;}
+.pp-btn.paused-on{background:#ECB22E22;border-color:#ECB22E88;color:#ffd700;}
+.layout.paused .pr{animation-play-state:paused;}
 .t-right{display:flex;align-items:center;gap:12px;}
 .stat-pill{display:flex;align-items:center;gap:7px;background:#ffffff12;border:1px solid #ffffff20;border-radius:20px;padding:4px 12px;font-size:11px;color:#fff;font-weight:700;}
 .stat-pill .num{color:var(--yellow);font-size:14px;font-weight:900;min-width:28px;text-align:center;transition:color .3s;}
@@ -43,6 +51,12 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-
 .leg-list{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
 .leg-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;background:var(--bg);border:1px solid var(--border);cursor:pointer;transition:all .2s;}
 .leg-item:hover,.leg-item.on{border-color:var(--purple);background:#1e1040;}
+.leg-item.off{opacity:.4;}
+.leg-item.off .leg-name{text-decoration:line-through;color:#888;}
+.leg-toggle{margin-left:auto;width:30px;height:16px;border-radius:10px;background:#3a3d45;border:1px solid #4a4d55;position:relative;transition:all .2s;flex-shrink:0;cursor:pointer;}
+.leg-toggle::after{content:'';position:absolute;width:11px;height:11px;border-radius:50%;background:#fff;top:1.5px;left:2px;transition:all .2s;}
+.leg-toggle.on{background:var(--green);border-color:var(--green);}
+.leg-toggle.on::after{left:16px;}
 .leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
 .leg-name{font-size:11px;font-weight:700;color:#fff;}
 .leg-sub{font-size:10px;color:var(--muted);margin-top:1px;}
@@ -220,16 +234,20 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-
 </script>
 
 <!-- ══ APP ══ -->
-<div class="layout">
+<div class="layout" id="layout">
 
 <!-- TOPBAR -->
 <header class="topbar">
   <div class="t-left">
     <div class="logo">slack<span>.</span></div>
     <div class="t-div"></div>
-    <div class="t-title">Slack Connect — The Network Effect</div>
+    <input class="t-title-input" id="t-company" placeholder="Your Company Name"
+      value="Slack Connect — The Network Effect" oninput="onCompanyInput(this.value)">
   </div>
   <div class="t-right">
+    <button class="pp-btn" id="pp-btn" onclick="togglePause()" title="Pause/play animations">
+      <span class="pp-ic" id="pp-ic">⏸</span><span id="pp-lbl">Pause</span>
+    </button>
     <div class="stat-pill">🔗 Orgs <span class="num" id="s-orgs">—</span></div>
     <div class="stat-pill">⚡ AI Actions/day <span class="num" id="s-actions">—</span></div>
     <div class="stat-pill">🌐 Signals/min <span class="num" id="s-sigs">—</span></div>
@@ -246,31 +264,32 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-
 
   <!-- VIEW TAB -->
   <div class="panel-body" id="tab-view">
-    <div class="p-label">Node Types</div>
+    <div class="p-label">Node Types · Click toggle to hide/show</div>
     <div class="leg-list">
-      <div class="leg-item on" onclick="legFilter('all',this)">
-        <div class="leg-dot" style="background:#7c6af7"></div>
-        <div><div class="leg-name">All Nodes</div><div class="leg-sub">Show full network</div></div>
-      </div>
-      <div class="leg-item" onclick="legFilter('customer',this)">
-        <div class="leg-dot" style="background:#4ade80"></div>
-        <div><div class="leg-name">Customers</div><div class="leg-sub" id="lct-c">—</div></div>
-      </div>
-      <div class="leg-item" onclick="legFilter('partner',this)">
-        <div class="leg-dot" style="background:#38bdf8"></div>
-        <div><div class="leg-name">Partners &amp; Resellers</div><div class="leg-sub" id="lct-p">—</div></div>
-      </div>
-      <div class="leg-item" onclick="legFilter('vendor',this)">
-        <div class="leg-dot" style="background:#ECB22E"></div>
-        <div><div class="leg-name">Vendors &amp; Suppliers</div><div class="leg-sub" id="lct-v">—</div></div>
-      </div>
-      <div class="leg-item" onclick="legFilter('agent',this)">
+      <div class="leg-item" data-type="agent" onclick="toggleCategory('agent',this)">
         <div class="leg-dot" style="background:#E01E5A"></div>
-        <div><div class="leg-name">AI Agents</div><div class="leg-sub" id="lct-a">—</div></div>
+        <div style="flex:1"><div class="leg-name">AI Agents</div><div class="leg-sub" id="lct-a">—</div></div>
+        <div class="leg-toggle on"></div>
       </div>
-      <div class="leg-item" onclick="legFilter('app',this)">
+      <div class="leg-item" data-type="customer" onclick="toggleCategory('customer',this)">
+        <div class="leg-dot" style="background:#4ade80"></div>
+        <div style="flex:1"><div class="leg-name">Customers</div><div class="leg-sub" id="lct-c">—</div></div>
+        <div class="leg-toggle on"></div>
+      </div>
+      <div class="leg-item" data-type="partner" onclick="toggleCategory('partner',this)">
+        <div class="leg-dot" style="background:#38bdf8"></div>
+        <div style="flex:1"><div class="leg-name">Partners &amp; Resellers</div><div class="leg-sub" id="lct-p">—</div></div>
+        <div class="leg-toggle on"></div>
+      </div>
+      <div class="leg-item" data-type="vendor" onclick="toggleCategory('vendor',this)">
+        <div class="leg-dot" style="background:#ECB22E"></div>
+        <div style="flex:1"><div class="leg-name">Vendors &amp; Suppliers</div><div class="leg-sub" id="lct-v">—</div></div>
+        <div class="leg-toggle on"></div>
+      </div>
+      <div class="leg-item" data-type="app" onclick="toggleCategory('app',this)">
         <div class="leg-dot" style="background:#c084fc"></div>
-        <div><div class="leg-name">Apps &amp; Data</div><div class="leg-sub" id="lct-ap">—</div></div>
+        <div style="flex:1"><div class="leg-name">Apps &amp; Data</div><div class="leg-sub" id="lct-ap">—</div></div>
+        <div class="leg-toggle on"></div>
       </div>
     </div>
     <div class="p-label">Scenarios</div>
@@ -480,21 +499,27 @@ const POOL = {
     { id:'v6', emoji:'🏗️', label:'Engineering', tip:{b:'External engineering. Receives product requirement briefs from Claude based on deal signals.',s:'🔨 2 custom builds scoped'} },
   ],
   app: [
-    { id:'a1', emoji:'☁️', label:'Salesforce', logo:'salesforce',     tip:{b:'Pipeline data synced in real time. Codex reads and writes CRM on behalf of every AE.',s:'📈 Real-time pipeline sync'} },
-    { id:'a2', emoji:'📅', label:'Calendar',   logo:'googlecalendar', tip:{b:'Upcoming meetings trigger pre-call briefs from Claude automatically. Zero manual action.',s:'🗓️ 6 briefs queued today'} },
-    { id:'a3', emoji:'📄', label:'Drive / Docs',logo:'googledrive',   tip:{b:'Playbooks, security docs and proposals — auto-surfaced by Claude in deal channels on demand.',s:'📂 12 docs shared this week'} },
-    { id:'a4', emoji:'🎙️', label:'Call Intel', logo:'gong',           tip:{b:'Call transcripts feed to Codex for MEDDIC extraction and Salesforce updates post-call.',s:'📝 8 calls processed today'} },
-    { id:'a5', emoji:'📧', label:'Gmail',      logo:'gmail',          tip:{b:'Email thread sentiment analysed by Claude. Key signals surfaced to AE in deal channel.',s:'📬 14 threads monitored'} },
-    { id:'a6', emoji:'📊', label:'Tableau',    logo:'tableau',        tip:{b:'Pipeline analytics pushed into Slack. Claude generates narrative insights from raw data.',s:'📊 Weekly digest auto-sent'} },
+    { id:'a1', emoji:'☁️', label:'Salesforce', logo:'salesforce',       tip:{b:'Pipeline data synced in real time. Codex reads and writes CRM on behalf of every AE.',s:'📈 Real-time pipeline sync'} },
+    { id:'a2', emoji:'📅', label:'Calendar',   logo:'googlecalendar',   tip:{b:'Upcoming meetings trigger pre-call briefs from Claude automatically. Zero manual action.',s:'🗓️ 6 briefs queued today'} },
+    { id:'a3', emoji:'📄', label:'Drive / Docs',logo:'googledrive',     tip:{b:'Playbooks, security docs and proposals — auto-surfaced by Claude in deal channels on demand.',s:'📂 12 docs shared this week'} },
+    { id:'a4', emoji:'📧', label:'Gmail',      logo:'gmail',            tip:{b:'Email thread sentiment analysed by Claude. Key signals surfaced to AE in deal channel.',s:'📬 14 threads monitored'} },
+    { id:'a5', emoji:'📨', label:'Outlook',    logo:'microsoftoutlook', tip:{b:'Outlook calendar and inbox surfaced into deal channels. Claude reads thread sentiment without anyone leaving Slack.',s:'📬 9 threads monitored'} },
+    { id:'a6', emoji:'👥', label:'Teams',      logo:'microsoftteams',   tip:{b:'Teams meeting recaps auto-posted to the Slack Connect deal channel by Codex.',s:'🎥 5 meetings recapped'} },
+    { id:'a7', emoji:'🗂️', label:'OneDrive',   logo:'microsoftonedrive',tip:{b:'Customer-shared OneDrive files indexed by Claude and made searchable inside the deal channel.',s:'📁 38 files indexed'} },
+    { id:'a8', emoji:'🎥', label:'Google Meet',logo:'googlemeet',       tip:{b:'Meet recordings transcribed and pushed to Codex for MEDDIC extraction in the deal Slack channel.',s:'🎬 4 calls processed'} },
+    { id:'a9', emoji:'📹', label:'Zoom',       logo:'zoom',             tip:{b:'Zoom call insights flow into Slack in real time. Claude flags risk signals as they happen on the call.',s:'⚡ Live coaching active'} },
+    { id:'a10',emoji:'🟠', label:'HubSpot',    logo:'hubspot',          tip:{b:'HubSpot CRM bidirectional sync. Codex updates deal stages and engagement scores from Slack.',s:'🔄 Bi-directional sync'} },
+    { id:'a11',emoji:'🎙️', label:'Call Intel', logo:'gong',             tip:{b:'Call transcripts feed to Codex for MEDDIC extraction and Salesforce updates post-call.',s:'📝 8 calls processed today'} },
+    { id:'a12',emoji:'📊', label:'Tableau',    logo:'tableau',          tip:{b:'Pipeline analytics pushed into Slack. Claude generates narrative insights from raw data.',s:'📊 Weekly digest auto-sent'} },
   ],
 };
 
 const QLEVEL = {
-  1:{ name:'Startup',    agent:1, customer:2,  partner:1, vendor:1, app:2,  mult:1    },
-  2:{ name:'Growth',     agent:2, customer:4,  partner:2, vendor:2, app:3,  mult:2.2  },
-  3:{ name:'Scale',      agent:2, customer:6,  partner:3, vendor:3, app:4,  mult:4.8  },
-  4:{ name:'Enterprise', agent:3, customer:10, partner:5, vendor:4, app:5,  mult:10.5 },
-  5:{ name:'Global',     agent:3, customer:16, partner:8, vendor:6, app:6,  mult:24   },
+  1:{ name:'Startup',    agent:1, customer:2,  partner:1, vendor:1, app:3,  mult:1    },
+  2:{ name:'Growth',     agent:2, customer:4,  partner:2, vendor:2, app:5,  mult:2.2  },
+  3:{ name:'Scale',      agent:2, customer:6,  partner:3, vendor:3, app:7,  mult:4.8  },
+  4:{ name:'Enterprise', agent:3, customer:10, partner:5, vendor:4, app:9,  mult:10.5 },
+  5:{ name:'Global',     agent:3, customer:16, partner:8, vendor:6, app:12, mult:24   },
 };
 
 const SB_NODE = {
@@ -504,7 +529,9 @@ const SB_NODE = {
 
 // ── State ──
 let quality    = 3;
+let paused     = false;
 let sbOn       = false;
+let hiddenTypes= new Set();
 let hiddenPool = new Set();
 let customNodes= [];
 let labelMap   = {};
@@ -535,12 +562,13 @@ function rebuild(){
   const q = QLEVEL[quality];
   AN = [];
 
-  AN.push({id:'hub',type:'hub',emoji:'🟣',label:'Slack HQ',tip:{b:'The AI-powered command centre. Every signal, every agent, every conversation — unified.',s:'🔗 All orgs connected here'}});
+  AN.push({id:'hub',type:'hub',emoji:'🟣',label:'Slack HQ',logo:'slack',tip:{b:'The AI-powered command centre. Every signal, every agent, every conversation — unified.',s:'🔗 All orgs connected here'}});
 
   if(sbOn) AN.push({...SB_NODE, label: resolveLabel(SB_NODE), emoji: resolveEmoji(SB_NODE)});
 
   const types = ['agent','customer','partner','vendor','app'];
   types.forEach(type=>{
+    if(hiddenTypes.has(type)) return;
     const pool  = POOL[type];
     const limit = q[type];
     let   shown = 0;
@@ -737,6 +765,41 @@ function switchTab(tab,el){
   document.getElementById('tab-edit').style.display=tab==='edit'?'block':'none';
 }
 function legFilter(type,el){ document.querySelectorAll('.leg-item').forEach(i=>i.classList.remove('on')); el.classList.add('on'); }
+
+function togglePause(){
+  paused=!paused;
+  const layout=document.getElementById('layout');
+  const btn=document.getElementById('pp-btn');
+  document.getElementById('pp-ic').textContent=paused?'▶':'⏸';
+  document.getElementById('pp-lbl').textContent=paused?'Play':'Pause';
+  btn.classList.toggle('paused-on',paused);
+  layout.classList.toggle('paused',paused);
+}
+
+function onCompanyInput(v){
+  try{ localStorage.setItem('_slk_company',v); }catch(e){}
+}
+
+(function(){
+  try{
+    const saved=localStorage.getItem('_slk_company');
+    if(saved!==null){ const el=document.getElementById('t-company'); if(el) el.value=saved; }
+  }catch(e){}
+})();
+
+function toggleCategory(type,el){
+  const tog=el.querySelector('.leg-toggle');
+  if(hiddenTypes.has(type)){
+    hiddenTypes.delete(type);
+    el.classList.remove('off');
+    if(tog) tog.classList.add('on');
+  } else {
+    hiddenTypes.add(type);
+    el.classList.add('off');
+    if(tog) tog.classList.remove('on');
+  }
+  rebuild();
+}
 function setScene(el){ document.querySelectorAll('.scene-btn').forEach(b=>b.classList.remove('on')); el.classList.add('on'); }
 
 // ══════════════════════════════════
@@ -757,6 +820,7 @@ resize(); window.addEventListener('resize',resize);
 
 let pulses=[], hoverId=null;
 setInterval(()=>{
+  if(paused) return;
   const nonHub=AN.filter(n=>n.id!=='hub');
   if(!nonHub.length) return;
   const nb=nonHub[Math.floor(Math.random()*nonHub.length)];
@@ -791,12 +855,14 @@ function nPos(n){
 let last=0;
 function draw(ts){
   const dt=Math.min(ts-last,50); last=ts;
-  AN.forEach(n=>{
-    if(n.id==='hub') return;
-    if(n.isSlackbot){ ANG[n.id]=(ANG[n.id]||0)+0.00018*dt; return; }
-    const o=ORBIT[n.type]||1;
-    ANG[n.id]=(ANG[n.id]||0)+SPD[o]*dt;
-  });
+  if(!paused){
+    AN.forEach(n=>{
+      if(n.id==='hub') return;
+      if(n.isSlackbot){ ANG[n.id]=(ANG[n.id]||0)+0.00018*dt; return; }
+      const o=ORBIT[n.type]||1;
+      ANG[n.id]=(ANG[n.id]||0)+SPD[o]*dt;
+    });
+  }
 
   ctx.clearRect(0,0,W,H);
 
@@ -833,7 +899,7 @@ function draw(ts){
       ctx.fillStyle=nt2.color; ctx.shadowColor=nt2.color; ctx.shadowBlur=10;
       ctx.fill(); ctx.shadowBlur=0;
     }
-    p.p+=p.s;
+    if(!paused) p.p+=p.s;
   });
 
   AN.forEach(n=>{
