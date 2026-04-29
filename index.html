@@ -439,8 +439,8 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-
 // ══════════════════════════════════
 const POOL = {
   agent: [
-    { id:'ag1', emoji:'🧠', label:'Claude',      tip:{b:'Deal intelligence, sentiment monitoring, pre-call briefings and real-time buyer coaching across all shared channels.',s:'47 insights generated today'} },
-    { id:'ag2', emoji:'⚡', label:'Codex',       tip:{b:'CRM automation, MEDDIC extraction, post-call summaries and follow-up drafts — triggered automatically after every call.',s:'31 automations run today'} },
+    { id:'ag1', emoji:'🧠', label:'Claude',      logo:'anthropic', tip:{b:'Deal intelligence, sentiment monitoring, pre-call briefings and real-time buyer coaching across all shared channels.',s:'47 insights generated today'} },
+    { id:'ag2', emoji:'⚡', label:'Codex',       logo:'openai',    tip:{b:'CRM automation, MEDDIC extraction, post-call summaries and follow-up drafts — triggered automatically after every call.',s:'31 automations run today'} },
     { id:'ag3', emoji:'🤖', label:'Custom Agent',tip:{b:'Your team\'s custom workflow bot — automates deal routing, approvals and escalations without ever leaving Slack.',s:'14 workflows active'} },
   ],
   customer: [
@@ -448,18 +448,18 @@ const POOL = {
     { id:'c2',  emoji:'🏭', label:'Globex',      tip:{b:'Renewal in 60 days. Codex auto-generated EBR. Champion highly engaged — 3 replies overnight.',s:'📊 EBR sent 3 days ago'} },
     { id:'c3',  emoji:'💡', label:'Initech',     tip:{b:'New logo. Champion sent 4 follow-up messages overnight. High-intent signal flagged by Claude.',s:'🟢 High intent — act today'} },
     { id:'c4',  emoji:'🚀', label:'Hooli',       tip:{b:'Expansion opportunity. 3 new departments requesting access. Codex drafted upsell proposal.',s:'⬆️ +3 dept expansion flagged'} },
-    { id:'c5',  emoji:'📡', label:'Verizon',     tip:{b:'Enterprise strategic account. QBR scheduled Friday. Claude prepping agenda and exec talking points.',s:'📅 QBR prep in progress'} },
-    { id:'c6',  emoji:'💳', label:'Stripe',      tip:{b:'Fast-growth fintech. Security review requested — Claude auto-shared SOC 2 docs within 2 minutes.',s:'🔒 Security docs shared'} },
-    { id:'c7',  emoji:'🛒', label:'Shopify',     tip:{b:'Post-sale onboarding. Claude coordinating kickoff with SI Partner and sharing context briefings.',s:'🤝 Kickoff in 3 days'} },
-    { id:'c8',  emoji:'📝', label:'Notion',      tip:{b:'Early stage. Champion booked demo via Slack Connect. Codex pulling firmographic data from CRM.',s:'🗓️ Demo booked'} },
-    { id:'c9',  emoji:'🏦', label:'Goldman',     tip:{b:'Financial services. FedRAMP compliant channel. Codex generates compliance-formatted summaries.',s:'🛡️ FedRAMP channel active'} },
-    { id:'c10', emoji:'🚗', label:'Tesla',       tip:{b:'New logo. AE used /prep-call — Claude delivered full brief including supply chain news in 8 seconds.',s:'⚡ Brief in 8 seconds'} },
-    { id:'c11', emoji:'✈️', label:'Delta',       tip:{b:'Renewal negotiation. Claude detected risk — no exec engagement in 14 days. Escalation triggered.',s:'⚠️ Risk flagged today'} },
-    { id:'c12', emoji:'💊', label:'Pfizer',      tip:{b:'HIPAA-compliant channel. Medical data handling policies applied to all AI agent responses.',s:'🏥 HIPAA compliant'} },
-    { id:'c13', emoji:'🌐', label:'Meta',        tip:{b:'Global expansion. 12 Slack Connect channels across 4 regions. Claude managing all threads.',s:'🌐 12 regional channels'} },
-    { id:'c14', emoji:'🔋', label:'Rivian',      tip:{b:'Startup segment. 3 days ahead of average deal cadence. Codex tracking task velocity.',s:'🏃 3 days ahead of pace'} },
-    { id:'c15', emoji:'🎵', label:'Spotify',     tip:{b:'EMEA customer. Data residency requirements met. All Connect traffic routed through EU region.',s:'🌍 EU data residency active'} },
-    { id:'c16', emoji:'🎮', label:'Epic Games',  tip:{b:'Gaming enterprise. 5 executive stakeholders. Claude mapping influence and tracking each relationship.',s:'👥 5 exec contacts mapped'} },
+    { id:'c5',  emoji:'📡', label:'Verizon',     logo:'verizon',     tip:{b:'Enterprise strategic account. QBR scheduled Friday. Claude prepping agenda and exec talking points.',s:'📅 QBR prep in progress'} },
+    { id:'c6',  emoji:'💳', label:'Stripe',      logo:'stripe',      tip:{b:'Fast-growth fintech. Security review requested — Claude auto-shared SOC 2 docs within 2 minutes.',s:'🔒 Security docs shared'} },
+    { id:'c7',  emoji:'🛒', label:'Shopify',     logo:'shopify',     tip:{b:'Post-sale onboarding. Claude coordinating kickoff with SI Partner and sharing context briefings.',s:'🤝 Kickoff in 3 days'} },
+    { id:'c8',  emoji:'📝', label:'Notion',      logo:'notion',      tip:{b:'Early stage. Champion booked demo via Slack Connect. Codex pulling firmographic data from CRM.',s:'🗓️ Demo booked'} },
+    { id:'c9',  emoji:'🏦', label:'Goldman',     logo:'goldmansachs',tip:{b:'Financial services. FedRAMP compliant channel. Codex generates compliance-formatted summaries.',s:'🛡️ FedRAMP channel active'} },
+    { id:'c10', emoji:'🚗', label:'Tesla',       logo:'tesla',       tip:{b:'New logo. AE used /prep-call — Claude delivered full brief including supply chain news in 8 seconds.',s:'⚡ Brief in 8 seconds'} },
+    { id:'c11', emoji:'✈️', label:'Delta',       logo:'delta',       tip:{b:'Renewal negotiation. Claude detected risk — no exec engagement in 14 days. Escalation triggered.',s:'⚠️ Risk flagged today'} },
+    { id:'c12', emoji:'💊', label:'Pfizer',      logo:'pfizer',      tip:{b:'HIPAA-compliant channel. Medical data handling policies applied to all AI agent responses.',s:'🏥 HIPAA compliant'} },
+    { id:'c13', emoji:'🌐', label:'Meta',        logo:'meta',        tip:{b:'Global expansion. 12 Slack Connect channels across 4 regions. Claude managing all threads.',s:'🌐 12 regional channels'} },
+    { id:'c14', emoji:'🔋', label:'Rivian',      logo:'rivian',      tip:{b:'Startup segment. 3 days ahead of average deal cadence. Codex tracking task velocity.',s:'🏃 3 days ahead of pace'} },
+    { id:'c15', emoji:'🎵', label:'Spotify',     logo:'spotify',     tip:{b:'EMEA customer. Data residency requirements met. All Connect traffic routed through EU region.',s:'🌍 EU data residency active'} },
+    { id:'c16', emoji:'🎮', label:'Epic Games',  logo:'epicgames',   tip:{b:'Gaming enterprise. 5 executive stakeholders. Claude mapping influence and tracking each relationship.',s:'👥 5 exec contacts mapped'} },
   ],
   partner: [
     { id:'p1', emoji:'🎨', label:'Agency A',    tip:{b:'Creative agency. Receives AI-generated campaign briefs via Codex. 4 active projects in shared channel.',s:'📨 4 briefs this month'} },
@@ -480,12 +480,12 @@ const POOL = {
     { id:'v6', emoji:'🏗️', label:'Engineering', tip:{b:'External engineering. Receives product requirement briefs from Claude based on deal signals.',s:'🔨 2 custom builds scoped'} },
   ],
   app: [
-    { id:'a1', emoji:'☁️', label:'Salesforce', tip:{b:'Pipeline data synced in real time. Codex reads and writes CRM on behalf of every AE.',s:'📈 Real-time pipeline sync'} },
-    { id:'a2', emoji:'📅', label:'Calendar',   tip:{b:'Upcoming meetings trigger pre-call briefs from Claude automatically. Zero manual action.',s:'🗓️ 6 briefs queued today'} },
-    { id:'a3', emoji:'📄', label:'Drive / Docs',tip:{b:'Playbooks, security docs and proposals — auto-surfaced by Claude in deal channels on demand.',s:'📂 12 docs shared this week'} },
-    { id:'a4', emoji:'🎙️', label:'Call Intel', tip:{b:'Call transcripts feed to Codex for MEDDIC extraction and Salesforce updates post-call.',s:'📝 8 calls processed today'} },
-    { id:'a5', emoji:'📧', label:'Gmail',      tip:{b:'Email thread sentiment analysed by Claude. Key signals surfaced to AE in deal channel.',s:'📬 14 threads monitored'} },
-    { id:'a6', emoji:'📊', label:'Tableau',    tip:{b:'Pipeline analytics pushed into Slack. Claude generates narrative insights from raw data.',s:'📊 Weekly digest auto-sent'} },
+    { id:'a1', emoji:'☁️', label:'Salesforce', logo:'salesforce',     tip:{b:'Pipeline data synced in real time. Codex reads and writes CRM on behalf of every AE.',s:'📈 Real-time pipeline sync'} },
+    { id:'a2', emoji:'📅', label:'Calendar',   logo:'googlecalendar', tip:{b:'Upcoming meetings trigger pre-call briefs from Claude automatically. Zero manual action.',s:'🗓️ 6 briefs queued today'} },
+    { id:'a3', emoji:'📄', label:'Drive / Docs',logo:'googledrive',   tip:{b:'Playbooks, security docs and proposals — auto-surfaced by Claude in deal channels on demand.',s:'📂 12 docs shared this week'} },
+    { id:'a4', emoji:'🎙️', label:'Call Intel', logo:'gong',           tip:{b:'Call transcripts feed to Codex for MEDDIC extraction and Salesforce updates post-call.',s:'📝 8 calls processed today'} },
+    { id:'a5', emoji:'📧', label:'Gmail',      logo:'gmail',          tip:{b:'Email thread sentiment analysed by Claude. Key signals surfaced to AE in deal channel.',s:'📬 14 threads monitored'} },
+    { id:'a6', emoji:'📊', label:'Tableau',    logo:'tableau',        tip:{b:'Pipeline analytics pushed into Slack. Claude generates narrative insights from raw data.',s:'📊 Weekly digest auto-sent'} },
   ],
 };
 
@@ -769,6 +769,17 @@ setInterval(()=>{
   }
 },170);
 
+// ── Logo cache (Simple Icons CDN, white tint for contrast) ──
+const LOGO_CACHE={};
+function getLogo(slug){
+  if(!slug) return null;
+  if(slug in LOGO_CACHE) return LOGO_CACHE[slug];
+  const img=new Image();
+  img.src=`https://cdn.simpleicons.org/${slug}/ffffff`;
+  LOGO_CACHE[slug]=img;
+  return img;
+}
+
 function getN(id){ return AN.find(n=>n.id===id); }
 function nPos(n){
   if(n.id==='hub') return {x:CX,y:CY};
@@ -839,13 +850,21 @@ function draw(ts){
     ctx.beginPath(); ctx.arc(pos.x,pos.y,r*3,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
 
     ctx.beginPath(); ctx.arc(pos.x,pos.y,r,0,Math.PI*2);
-    ctx.fillStyle=n.type==='hub'?nt.color:(n.isSlackbot?'#ECB22E20':nt.color+'1a');
+    ctx.fillStyle=n.type==='hub'?nt.color:(n.isSlackbot?'#ECB22E33':nt.color+'33');
     if(isH){ctx.shadowColor=nt.color;ctx.shadowBlur=24;}
     ctx.strokeStyle=nt.stroke; ctx.lineWidth=(n.type==='hub'||n.isSlackbot)?3:2;
     ctx.fill(); ctx.stroke(); ctx.shadowBlur=0;
 
-    ctx.font=`${r*.9}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(n.emoji,pos.x,pos.y);
+    const logo = n.logo ? getLogo(n.logo) : null;
+    if(logo && logo.complete && logo.naturalWidth>0){
+      const sz=r*1.1;
+      ctx.drawImage(logo, pos.x-sz/2, pos.y-sz/2, sz, sz);
+    } else {
+      ctx.fillStyle='#fff';
+      ctx.font=`${r*.95}px "Apple Color Emoji","Segoe UI Emoji",serif`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(n.emoji,pos.x,pos.y);
+    }
 
     ctx.font=`${n.type==='hub'?'bold 11':'10'}px Lato,sans-serif`;
     ctx.fillStyle=isH?'#fff':(n.isSlackbot?'#ffd700':'#c5c5cf');
