@@ -128,6 +128,13 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-
 /* CANVAS */
 .canvas-wrap{position:relative;overflow:hidden;background:var(--bg);}
 #mc{display:block;width:100%;height:100%;}
+.canvas-title{position:absolute;top:22px;left:50%;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:6px;pointer-events:auto;white-space:nowrap;}
+.org-name-input{background:transparent;border:1px solid transparent;border-radius:8px;padding:5px 10px;color:#fff;font-size:24px;font-weight:900;font-family:'Lato',sans-serif;letter-spacing:-.6px;outline:none;text-align:center;width:auto;min-width:90px;max-width:420px;transition:border-color .2s,background .2s;}
+.org-name-input::placeholder{color:#ffffff44;font-weight:900;}
+.org-name-input:hover{background:#ffffff08;border-color:#ffffff18;}
+.org-name-input:focus{background:#ffffff14;border-color:#ECB22E66;}
+.canvas-title-x{font-size:22px;font-weight:900;color:#ffffff55;letter-spacing:-.5px;}
+.canvas-title-suffix{font-size:24px;font-weight:900;color:#ECB22E;letter-spacing:-.5px;}
 #tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 13px;max-width:215px;display:none;z-index:10;box-shadow:0 8px 32px #00000080;}
 #tip.vis{display:block;}
 #tip .tn{font-size:13px;font-weight:700;margin-bottom:3px;}
@@ -245,6 +252,9 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-
       value="Slack Connect — The Network Effect" oninput="onCompanyInput(this.value)">
   </div>
   <div class="t-right">
+    <button class="pp-btn" id="rs-btn" onclick="resetAll()" title="Reset model — hide all node types and clear stats">
+      <span>↺</span><span>Reset</span>
+    </button>
     <button class="pp-btn" id="pp-btn" onclick="togglePause()" title="Pause/play animations">
       <span class="pp-ic" id="pp-ic">⏸</span><span id="pp-lbl">Pause</span>
     </button>
@@ -266,6 +276,11 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-
   <div class="panel-body" id="tab-view">
     <div class="p-label">Node Types · Click toggle to hide/show</div>
     <div class="leg-list">
+      <div class="leg-item" data-type="employee" onclick="toggleCategory('employee',this)">
+        <div class="leg-dot" style="background:#fb923c"></div>
+        <div style="flex:1"><div class="leg-name">Employees</div><div class="leg-sub" id="lct-e">—</div></div>
+        <div class="leg-toggle on"></div>
+      </div>
       <div class="leg-item" data-type="agent" onclick="toggleCategory('agent',this)">
         <div class="leg-dot" style="background:#E01E5A"></div>
         <div style="flex:1"><div class="leg-name">AI Agents</div><div class="leg-sub" id="lct-a">—</div></div>
@@ -294,10 +309,11 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-
     </div>
     <div class="p-label">Scenarios</div>
     <div class="scene-btns">
-      <button class="scene-btn on" onclick="setScene(this)">🌐 Full Network</button>
-      <button class="scene-btn" onclick="setScene(this)">💼 Active Deal Room</button>
-      <button class="scene-btn" onclick="setScene(this)">🧠 AI Agent Layer</button>
-      <button class="scene-btn" onclick="setScene(this)">📊 Data &amp; Apps</button>
+      <button class="scene-btn on" data-scene="full" onclick="setScene(this)">🌐 Full Network</button>
+      <button class="scene-btn" data-scene="before" onclick="setScene(this)">🏢 Before Connect</button>
+      <button class="scene-btn" data-scene="deal" onclick="setScene(this)">💼 Active Deal Room</button>
+      <button class="scene-btn" data-scene="agent" onclick="setScene(this)">🧠 AI Agent Layer</button>
+      <button class="scene-btn" data-scene="data" onclick="setScene(this)">📊 Data &amp; Apps</button>
     </div>
   </div>
 
@@ -347,6 +363,19 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-
         <div class="sb-bullet">Escalates urgent signals with one-tap acknowledge buttons</div>
         <div class="sb-bullet">No external API — fully governed by your Slack Enterprise policies</div>
       </div>
+    </div>
+
+    <!-- EMPLOYEES -->
+    <div class="node-section">
+      <div class="ns-header">
+        <div class="ns-left">
+          <div class="ns-dot" style="background:#fb923c"></div>
+          <div class="ns-title">Employees</div>
+          <span class="ns-count" id="nc-employee">0</span>
+        </div>
+        <button class="add-btn" style="color:#fb923c;border-color:#fb923c44" onclick="addCustom('employee')">+ Add</button>
+      </div>
+      <div class="node-inputs" id="inputs-employee"></div>
     </div>
 
     <!-- AI AGENTS -->
@@ -419,6 +448,14 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-
 
 <!-- CANVAS -->
 <main class="canvas-wrap" id="cw">
+  <div class="canvas-title">
+    <input class="org-name-input" id="org-name" placeholder="Your Organisation"
+      oninput="onOrgInput(this.value)" spellcheck="false" autocomplete="off">
+    <span class="canvas-title-x">×</span>
+    <span class="canvas-title-suffix">Slack</span>
+    <span id="org-name-mirror" aria-hidden="true"
+      style="position:absolute;visibility:hidden;white-space:pre;font-size:24px;font-weight:900;font-family:'Lato',sans-serif;letter-spacing:-.6px;padding:0 10px;"></span>
+  </div>
   <div class="pr"></div><div class="pr"></div><div class="pr"></div>
   <canvas id="mc"></canvas>
   <div id="tip">
@@ -457,10 +494,32 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-
 //  DATA  — full node pools
 // ══════════════════════════════════
 const POOL = {
+  employee: [
+    { id:'e1',  emoji:'🎯', label:'Sales',             tip:{b:'AEs, SEs and SDRs running deals from shared Slack Connect channels. Every email, meeting and Salesforce update flows here.',s:'🟢 48 reps active in network'} },
+    { id:'e2',  emoji:'📣', label:'Marketing',         tip:{b:'Campaign, content and demand gen team. Briefs agencies and tracks MQL→SQL flow inside channels.',s:'📊 6 campaigns in-flight'} },
+    { id:'e3',  emoji:'🛠️', label:'Engineering',       tip:{b:'Product and platform engineers. Ship Slack apps, respond to SEVs, and sync with customer engineering teams in shared channels.',s:'🚀 14 releases this week'} },
+    { id:'e4',  emoji:'🧩', label:'Product',           tip:{b:'PM team running discovery, roadmap and launches. Customer feedback from Connect channels feeds directly into backlog.',s:'🗺️ 3 launches queued'} },
+    { id:'e5',  emoji:'🎨', label:'Design',            tip:{b:'Product design and brand team. Shares Figma files directly to deal channels; customer feedback loops in real time.',s:'🖌️ 11 live design reviews'} },
+    { id:'e6',  emoji:'💬', label:'Support',           tip:{b:'Tier 1 and Tier 2 support. Cases auto-route to the right channel; agents answer in-thread with full context.',s:'🎫 312 tickets today'} },
+    { id:'e7',  emoji:'🤝', label:'Customer Success',  tip:{b:'CSMs managing renewals, adoption and EBRs. Every customer has a shared Connect channel — health scores surface daily.',s:'📈 94% renewal rate'} },
+    { id:'e8',  emoji:'💵', label:'Finance',           tip:{b:'Deal desk, RevOps and FP&A. Approvals, quote reviews and forecasts happen in-channel, not over email.',s:'✅ 22 approvals this week'} },
+    { id:'e9',  emoji:'👥', label:'People / HR',       tip:{b:'People team. Runs onboarding, comp and hiring inside Slack — new hires join their channels day one.',s:'🌱 7 new hires onboarded'} },
+    { id:'e10', emoji:'📜', label:'Legal',             tip:{b:'In-house counsel. Reviews MSAs, redlines and DPA requests in-thread. DLP policies applied automatically.',s:'📑 4 redlines active'} },
+    { id:'e11', emoji:'⚙️', label:'Operations',        tip:{b:'BizOps and GTM ops. Instrumenting the network, building dashboards and keeping the stack honest.',s:'🔧 9 workflows maintained'} },
+    { id:'e12', emoji:'🖥️', label:'IT',                tip:{b:'Internal IT and helpdesk. Runs device, SSO and entitlement requests via Slack workflows — zero email.',s:'🔐 168 requests auto-resolved'} },
+    { id:'e13', emoji:'📊', label:'Data / Analytics',  tip:{b:'Data science and analytics team. Publishes weekly insights directly into deal channels via scheduled posts.',s:'📈 Weekly digest live'} },
+    { id:'e14', emoji:'👔', label:'Executives',        tip:{b:'CEO, CRO and leadership team. Subscribed to risk, renewal and strategic deal channels. Escalations reach them in seconds.',s:'⚡ 3 exec-reviewed deals'} },
+  ],
   agent: [
-    { id:'ag1', emoji:'🧠', label:'Claude',      logo:'anthropic', tip:{b:'Deal intelligence, sentiment monitoring, pre-call briefings and real-time buyer coaching across all shared channels.',s:'47 insights generated today'} },
-    { id:'ag2', emoji:'⚡', label:'Codex',       logo:'openai',    tip:{b:'CRM automation, MEDDIC extraction, post-call summaries and follow-up drafts — triggered automatically after every call.',s:'31 automations run today'} },
-    { id:'ag3', emoji:'🤖', label:'Custom Agent',tip:{b:'Your team\'s custom workflow bot — automates deal routing, approvals and escalations without ever leaving Slack.',s:'14 workflows active'} },
+    { id:'ag1', emoji:'🧠', label:'Claude',           logo:'anthropic',     tip:{b:'Deal intelligence, sentiment monitoring, pre-call briefings and real-time buyer coaching across all shared channels.',s:'47 insights generated today'} },
+    { id:'ag2', emoji:'⚡', label:'Codex',            logo:'openai',        tip:{b:'CRM automation, MEDDIC extraction, post-call summaries and follow-up drafts — triggered automatically after every call.',s:'31 automations run today'} },
+    { id:'ag3', emoji:'💼', label:'Workday Illuminate',logo:'workday',      tip:{b:'HR and finance agent. Approves expense, comp and headcount requests in-channel. Reads from Workday, posts summaries to the deal room.',s:'9 approvals this week'} },
+    { id:'ag4', emoji:'🛎️', label:'Now Assist',       logo:'servicenow',    tip:{b:'ServiceNow agent. Auto-triages customer support tickets, files ITSM records and updates the deal channel when blockers are cleared.',s:'22 tickets resolved today'} },
+    { id:'ag5', emoji:'✨', label:'Gemini',           logo:'googlegemini',  tip:{b:'Google agent. Summarises long Gmail threads, extracts action items from Meet recordings and surfaces Drive docs into the deal channel.',s:'18 threads summarised'} },
+    { id:'ag6', emoji:'🟦', label:'Microsoft Copilot',logo:'microsoft',     tip:{b:'Microsoft agent. Reads Outlook, Teams and SharePoint context, drafts responses and mirrors activity into the Slack Connect deal room.',s:'12 drafts ready for review'} },
+    { id:'ag7', emoji:'💬', label:'ChatGPT',          logo:'openai',        tip:{b:'OpenAI agent. Runs research, competitive scans and briefing docs on demand — output lands directly in the channel with citations.',s:'6 research briefs today'} },
+    { id:'ag8', emoji:'🔎', label:'Glean',            logo:'glean',         tip:{b:'Enterprise search agent. Finds the right document, expert or past deal conversation across every connected system — answers posted in-thread.',s:'38 searches answered'} },
+    { id:'ag9', emoji:'🤖', label:'Custom Agent',                            tip:{b:'Your team\'s custom workflow bot — automates deal routing, approvals and escalations without ever leaving Slack.',s:'14 workflows active'} },
   ],
   customer: [
     { id:'c1',  emoji:'🏢', label:'Acme Corp',   tip:{b:'Active deal. Claude monitors sentiment daily. CTO posted about stack modernisation — lead with migration ROI.',s:'💬 23 messages this week'} },
@@ -515,11 +574,11 @@ const POOL = {
 };
 
 const QLEVEL = {
-  1:{ name:'Startup',    agent:1, customer:2,  partner:1, vendor:1, app:3,  mult:1    },
-  2:{ name:'Growth',     agent:2, customer:4,  partner:2, vendor:2, app:5,  mult:2.2  },
-  3:{ name:'Scale',      agent:2, customer:6,  partner:3, vendor:3, app:7,  mult:4.8  },
-  4:{ name:'Enterprise', agent:3, customer:10, partner:5, vendor:4, app:9,  mult:10.5 },
-  5:{ name:'Global',     agent:3, customer:16, partner:8, vendor:6, app:12, mult:24   },
+  1:{ name:'Startup',    employee:3,  agent:2, customer:2,  partner:1, vendor:1, app:3,  mult:1    },
+  2:{ name:'Growth',     employee:5,  agent:4, customer:4,  partner:2, vendor:2, app:5,  mult:2.2  },
+  3:{ name:'Scale',      employee:8,  agent:6, customer:6,  partner:3, vendor:3, app:7,  mult:4.8  },
+  4:{ name:'Enterprise', employee:11, agent:8, customer:10, partner:5, vendor:4, app:9,  mult:10.5 },
+  5:{ name:'Global',     employee:14, agent:9, customer:16, partner:8, vendor:6, app:12, mult:24   },
 };
 
 const SB_NODE = {
@@ -543,6 +602,7 @@ let ANG= {};
 
 const NT = {
   hub:     {color:'#7c6af7',glow:'#7c6af755',stroke:'#a78bfa',r:38},
+  employee:{color:'#fb923c',glow:'#fb923c33',stroke:'#fb923c',r:16},
   customer:{color:'#4ade80',glow:'#4ade8033',stroke:'#4ade80',r:20},
   partner: {color:'#38bdf8',glow:'#38bdf833',stroke:'#38bdf8',r:17},
   vendor:  {color:'#ECB22E',glow:'#ECB22E33',stroke:'#ECB22E',r:15},
@@ -550,10 +610,32 @@ const NT = {
   app:     {color:'#c084fc',glow:'#c084fc33',stroke:'#c084fc',r:15},
 };
 const SB_NT = {color:'#ECB22E',glow:'#ECB22E55',stroke:'#ffd700',r:22};
-const ORBIT  = {hub:0, agent:1, customer:1, partner:2, vendor:2, app:3};
-const ORB_R_BASE = [0,130,210,295];
-const SPD    = [0, 0.00010,-0.00007,0.00005];
+// Each type gets its own orbit ring so nothing overlaps.
+// Employees are innermost (your people), then agents, customers, partners, vendors, apps.
+const ORBIT  = {hub:0, employee:1, agent:2, customer:3, partner:4, vendor:5, app:6};
+const ORB_R_BASE = [0, 85, 135, 190, 245, 295, 345];
+const SPD    = [0, 0.00014, 0.00011, -0.00008, 0.00006, -0.00005, 0.00004];
 let orbR     = [...ORB_R_BASE];
+// Per-node motion params: jitter radius, angular speed, breathing wobble
+const NMOT = {};
+function motFor(id, orbit){
+  if(NMOT[id]) return NMOT[id];
+  const rand = (seed => { let x=Math.sin(seed)*10000; return x-Math.floor(x); });
+  const s1=rand(id.length*7+id.charCodeAt(0)*3+(id.charCodeAt(1)||0));
+  const s2=rand(id.length*13+(id.charCodeAt(2)||0)*5+41);
+  const s3=rand(id.length*19+(id.charCodeAt(0)||0)*11+97);
+  const s4=rand(id.length*29+(id.charCodeAt(1)||0)*17+13);
+  const baseSpd = SPD[orbit] || 0;
+  NMOT[id] = {
+    rOffset: (s1-0.5)*16,            // ±8px radial jitter (stays inside the ring band)
+    spdMult: 0.55 + s2*0.95,          // 0.55–1.5× per-node speed
+    wobAmp:  4 + s3*8,                // 4–12px radial breathing
+    wobFrq:  0.0004 + s4*0.0010,      // radians/ms
+    wobPh:   s1*Math.PI*2,
+    baseSpd
+  };
+  return NMOT[id];
+}
 
 function resolveLabel(n){ return labelMap[n.id] ?? n.label; }
 function resolveEmoji(n){ return emojiMap[n.id] ?? n.emoji; }
@@ -566,9 +648,9 @@ function rebuild(){
 
   if(sbOn) AN.push({...SB_NODE, label: resolveLabel(SB_NODE), emoji: resolveEmoji(SB_NODE)});
 
-  const types = ['agent','customer','partner','vendor','app'];
+  const types = ['employee','agent','customer','partner','vendor','app'];
   types.forEach(type=>{
-    if(hiddenTypes.has(type)) return;
+    if(hiddenTypes.has(type) || sceneHidden.has(type)) return;
     const pool  = POOL[type];
     const limit = q[type];
     let   shown = 0;
@@ -583,7 +665,7 @@ function rebuild(){
     });
   });
 
-  const byOrbit={0:[],1:[],2:[],3:[]};
+  const byOrbit={};
   AN.forEach(n=>{
     const o = n.isSlackbot ? 99 : Math.floor(ORBIT[n.type]||0);
     if(!byOrbit[o]) byOrbit[o]=[];
@@ -599,13 +681,13 @@ function rebuild(){
 
   refreshLegend();
   refreshInputs();
-  refreshStats();
+  refreshStats(true);
   refreshQSummary();
 }
 
 function refreshLegend(){
-  const map={customer:'lct-c',partner:'lct-p',vendor:'lct-v',agent:'lct-a',app:'lct-ap'};
-  const names={customer:'customer orgs',partner:'partners',vendor:'vendors',agent:'AI agents',app:'integrations'};
+  const map={employee:'lct-e',customer:'lct-c',partner:'lct-p',vendor:'lct-v',agent:'lct-a',app:'lct-ap'};
+  const names={employee:'departments',customer:'customer orgs',partner:'partners',vendor:'vendors',agent:'AI agents',app:'integrations'};
   Object.keys(map).forEach(t=>{
     const n=AN.filter(x=>x.type===t||(t==='agent'&&x.isSlackbot)).length;
     const el=document.getElementById(map[t]); if(el) el.textContent=n+' '+names[t];
@@ -615,6 +697,7 @@ function refreshLegend(){
 function refreshQSummary(){
   const q=QLEVEL[quality];
   const types=[
+    {k:'employee',label:'Employees',color:'#fb923c'},
     {k:'agent',   label:'Agents', color:'#E01E5A'},
     {k:'customer',label:'Customers',color:'#4ade80'},
     {k:'partner', label:'Partners',color:'#38bdf8'},
@@ -632,6 +715,7 @@ function refreshQSummary(){
 }
 
 const EMOJI_POOLS={
+  employee:['🎯','📣','🛠️','🧩','🎨','💬','🤝','💵','👥','📜','⚙️','🖥️','📊','👔','🧪','🔬'],
   agent:  ['🧠','⚡','🤖','🔮','🧬','🌀','🦾','💎'],
   customer:['🏢','🏭','💡','🚀','📡','💳','🛒','📝','🏦','🚗','✈️','💊','🌐','🔋','🎵','🎮','🎯','💼','🌿','🔬'],
   partner: ['🎨','🔄','🔧','📦','🎓','📊','🔐','🌱','🤝','🔗','🛠️','🌍'],
@@ -640,7 +724,7 @@ const EMOJI_POOLS={
 };
 
 function refreshInputs(){
-  const types=['agent','customer','partner','vendor','app'];
+  const types=['employee','agent','customer','partner','vendor','app'];
   types.forEach(type=>{
     const el=document.getElementById('inputs-'+type);
     const nc=document.getElementById('nc-'+type);
@@ -693,7 +777,7 @@ function cycleEmoji(id,type,btn){
 function addCustom(type){
   const pool=EMOJI_POOLS[type]||['⭐'];
   const emoji=pool[Math.floor(Math.random()*pool.length)];
-  const defaults={agent:'New Agent',customer:'New Customer',partner:'New Partner',vendor:'New Vendor',app:'New App'};
+  const defaults={employee:'New Department',agent:'New Agent',customer:'New Customer',partner:'New Partner',vendor:'New Vendor',app:'New App'};
   const id='cx_'+(customIdN++);
   customNodes.push({id,type,emoji,label:defaults[type]||'New Node',custom:true,
     tip:{b:'Custom node added to your network. Edit the name to match your organisation.',s:'→ Added just now'}});
@@ -722,40 +806,44 @@ function setQuality(q){
   rebuild(); refreshStats(true);
 }
 
-const BASE={orgs:13,actions:78,sigs:240,reach:4200,deals:8,msgs:47,saved:31,ext:17,sig:94};
-
-function animVal(id,target,suffix){
+function animVal(id,target,suffix,decimals){
   const el=document.getElementById(id); if(!el) return;
   let v=0,t=0;
   const iv=setInterval(()=>{
-    t+=50; v=Math.min(target,Math.round(target*(t/700)));
-    el.textContent=v.toLocaleString()+(suffix||'');
+    t+=50; v=Math.min(target,target*(t/700));
+    el.textContent=(decimals?v.toFixed(decimals):Math.round(v)).toLocaleString()+(suffix||'');
     if(v>=target) clearInterval(iv);
   },40);
 }
 
 function refreshStats(anim){
   const m=QLEVEL[quality].mult;
-  const extra=1+(customNodes.length*0.1)+(sbOn?0.12:0);
-  const e=m*extra;
-  const vals={
-    's-orgs':  Math.round(BASE.orgs*e*0.6+1),
-    's-actions':Math.round(BASE.actions*e),
-    's-sigs':  Math.round(BASE.sigs*e),
-    's-reach': Math.round(BASE.reach*e),
-    'ms-deals':Math.round(BASE.deals*e*0.5+1),
-    'ms-msgs': Math.round(BASE.msgs*e),
-    'ms-saved':Math.round(BASE.saved*e),
-    'ms-ext':  Math.round(BASE.ext*e*0.6+1),
-    'ms-sig':  Math.round(BASE.sig*e),
-  };
+  const count=t=>AN.filter(n=>n.type===t).length;
+  const emp=count('employee'),ag=count('agent')+(sbOn?1:0),
+        cust=count('customer'),part=count('partner'),vend=count('vendor'),app=count('app');
+  const total=emp+ag+cust+part+vend+app;
+
+  // Per-type weights. Scale multiplier amplifies impact as network grows.
+  const orgs     = Math.round((cust + part + vend) * (1 + m*0.3));
+  const actions  = Math.round((ag*32 + app*8) * (1 + m*0.18));
+  const sigs     = Math.round((ag*18 + app*6 + emp*2) * (1 + m*0.22));
+  const reach    = Math.round((emp*185 + cust*240 + part*140) * (1 + m*0.12));
+  const deals    = Math.round(cust * (0.6 + m*0.08));
+  const msgs     = Math.round((ag*14 + emp*3 + cust*2) * (1 + m*0.16));
+  const saved    = Math.round((ag*9 + emp*2) * (1 + m*0.14) + (sbOn?18:0));
+  const ext      = Math.round((cust + part + vend) * (1 + m*0.08));
+  const sig      = Math.round((ag*11 + app*4) * (1 + m*0.20));
+  // Network value: Metcalfe-ish — scales with square of total connected nodes.
+  const nv       = total===0 ? 0 : +((total*total)*0.05*m).toFixed(1);
+
+  const vals={'s-orgs':orgs,'s-actions':actions,'s-sigs':sigs,'s-reach':reach,
+    'ms-deals':deals,'ms-msgs':msgs,'ms-saved':saved,'ms-ext':ext,'ms-sig':sig};
   Object.entries(vals).forEach(([id,v])=>{
     const el=document.getElementById(id); if(!el) return;
     if(anim) animVal(id,v,''); else el.textContent=v.toLocaleString();
   });
-  const nv=(BASE.orgs*m*m*0.15*extra).toFixed(1);
-  if(anim) animVal('ms-nv',parseFloat(nv),'×');
-  else { const el=document.getElementById('ms-nv'); if(el) el.textContent=nv+'×'; }
+  if(anim) animVal('ms-nv',nv,'×',1);
+  else { const el=document.getElementById('ms-nv'); if(el) el.textContent=nv.toFixed(1)+'×'; }
 }
 
 function switchTab(tab,el){
@@ -780,12 +868,65 @@ function onCompanyInput(v){
   try{ localStorage.setItem('_slk_company',v); }catch(e){}
 }
 
+function sizeOrgInput(){
+  const inp=document.getElementById('org-name');
+  const mir=document.getElementById('org-name-mirror');
+  if(!inp||!mir) return;
+  mir.textContent = inp.value || inp.placeholder || '';
+  const w=Math.min(420, Math.max(90, mir.getBoundingClientRect().width + 4));
+  inp.style.width = w + 'px';
+}
+
+function onOrgInput(v){
+  try{ localStorage.setItem('_slk_org',v); }catch(e){}
+  sizeOrgInput();
+}
+
 (function(){
   try{
     const saved=localStorage.getItem('_slk_company');
     if(saved!==null){ const el=document.getElementById('t-company'); if(el) el.value=saved; }
+    const org=localStorage.getItem('_slk_org');
+    if(org!==null){ const el=document.getElementById('org-name'); if(el) el.value=org; }
   }catch(e){}
+  sizeOrgInput();
 })();
+window.addEventListener('resize',sizeOrgInput);
+
+function resetAll(){
+  hiddenTypes = new Set(['employee','agent','customer','partner','vendor','app']);
+  hiddenPool = new Set();
+  customNodes = [];
+  labelMap = {};
+  emojiMap = {};
+  ANG = {};
+  pulses = [];
+  sbOn = false;
+
+  document.querySelectorAll('.leg-item').forEach(el=>{
+    el.classList.add('off');
+    const tog=el.querySelector('.leg-toggle'); if(tog) tog.classList.remove('on');
+  });
+
+  spotlightIds=null;
+  sceneHidden=new Set();
+  document.querySelectorAll('.scene-btn').forEach(b=>b.classList.remove('on'));
+  const fullBtn=document.querySelector('.scene-btn[data-scene="full"]');
+  if(fullBtn) fullBtn.classList.add('on');
+
+  const sbChk=document.getElementById('sb-chk');
+  if(sbChk) sbChk.checked=false;
+  const sbLbl=document.getElementById('sb-lbl');
+  if(sbLbl){ sbLbl.textContent='Add to network'; sbLbl.className='sb-lbl'; }
+  const sbBul=document.getElementById('sb-bullets');
+  if(sbBul) sbBul.className='sb-bullets';
+
+  rebuild();
+
+  ['s-orgs','s-actions','s-sigs','s-reach','ms-deals','ms-msgs','ms-saved','ms-ext','ms-sig','ms-nv']
+    .forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent='0'; });
+  const nv=document.getElementById('ms-nv'); if(nv) nv.textContent='0×';
+}
 
 function toggleCategory(type,el){
   const tog=el.querySelector('.leg-toggle');
@@ -800,7 +941,57 @@ function toggleCategory(type,el){
   }
   rebuild();
 }
-function setScene(el){ document.querySelectorAll('.scene-btn').forEach(b=>b.classList.remove('on')); el.classList.add('on'); }
+let spotlightIds=null; // null = no spotlight, Set = only these pop
+let sceneHidden=new Set(); // types hidden purely by scenario (separate from user toggles)
+
+const SCENES = {
+  full: {
+    hide:[],
+    spotlight:null,
+    storyline:'Everything connected: people, agents, customers, partners, vendors, apps.'
+  },
+  before: {
+    hide:['agent','customer','partner','vendor','app'],
+    spotlight:null,
+    storyline:'Before Slack Connect: your people, your hub, siloed from the outside world.'
+  },
+  deal: {
+    // Keep the world visible but spotlight a single deal room cross-section.
+    hide:[],
+    spotlightIds:['hub','c1','e1','e7','e8','e10','ag1','ag2','v1','v2','v3','a1','a2','a11'],
+    storyline:'One Acme deal: AE, CS, Legal, Finance, Claude, Codex, Salesforce, Calendar — all in one channel.'
+  },
+  agent: {
+    hide:[],
+    // Spotlight agents + apps (what agents read/write). Dim humans.
+    spotlightTypes:['agent','app','hub'],
+    storyline:'AI agents operating on the same network humans use — reading apps, posting to channels.'
+  },
+  data: {
+    hide:[],
+    spotlightTypes:['app','hub'],
+    storyline:'Your systems of record are the spine. Everything else consumes from here.'
+  },
+};
+
+function applyScene(key){
+  const s=SCENES[key]||SCENES.full;
+  sceneHidden = new Set(s.hide||[]);
+  spotlightIds = s.spotlightIds ? new Set(s.spotlightIds) : null;
+  rebuild(); // rebuild first so AN reflects scene-hidden types
+  if(s.spotlightTypes){
+    const set=new Set(s.spotlightTypes);
+    spotlightIds = new Set(AN.filter(n=>set.has(n.type)||n.id==='hub').map(n=>n.id));
+  }
+  const el=document.querySelector('.bot-mid');
+  if(el) el.textContent='"'+s.storyline+'"';
+}
+
+function setScene(el){
+  document.querySelectorAll('.scene-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  applyScene(el.dataset.scene||'full');
+}
 
 // ══════════════════════════════════
 //  CANVAS
@@ -833,44 +1024,105 @@ setInterval(()=>{
   }
 },170);
 
-// ── Logo cache (Simple Icons CDN, white tint for contrast) ──
+// ── Logo cache ── Brand-color logos rendered on a white disc.
+// Slack uses inline 4-color SVG. Everything else pulls from Simple Icons at
+// its real brand colour, with a Clearbit fallback by domain if SI misses.
+const SLACK_LOGO_SVG=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 122.8 122.8"><path d="M25.8 77.6c0 7.1-5.8 12.9-12.9 12.9S0 84.7 0 77.6s5.8-12.9 12.9-12.9h12.9v12.9zm6.5 0c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9v32.3c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V77.6z" fill="#E01E5A"/><path d="M45.2 25.8c-7.1 0-12.9-5.8-12.9-12.9S38.1 0 45.2 0s12.9 5.8 12.9 12.9v12.9H45.2zm0 6.5c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H12.9C5.8 58.1 0 52.3 0 45.2s5.8-12.9 12.9-12.9h32.3z" fill="#36C5F0"/><path d="M97 45.2c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9-5.8 12.9-12.9 12.9H97V45.2zm-6.5 0c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V12.9C64.7 5.8 70.5 0 77.6 0s12.9 5.8 12.9 12.9v32.3z" fill="#2EB67D"/><path d="M77.6 97c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9-12.9-5.8-12.9-12.9V97h12.9zm0-6.5c-7.1 0-12.9-5.8-12.9-12.9s5.8-12.9 12.9-12.9h32.3c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H77.6z" fill="#ECB22E"/></svg>`;
+const SLACK_LOGO_URI='data:image/svg+xml;utf8,'+encodeURIComponent(SLACK_LOGO_SVG);
+
+// Clearbit domain fallback for brands that aren't on Simple Icons (e.g. Glean).
+const LOGO_DOMAIN = {
+  glean:'glean.com',
+  anthropic:'anthropic.com',
+  workday:'workday.com',
+  servicenow:'servicenow.com',
+  googlegemini:'gemini.google.com',
+  microsoft:'microsoft.com',
+  openai:'openai.com',
+  salesforce:'salesforce.com',
+  hubspot:'hubspot.com',
+  tableau:'tableau.com',
+  gong:'gong.io',
+  zoom:'zoom.us',
+  googlemeet:'meet.google.com',
+  googledrive:'drive.google.com',
+  googlecalendar:'calendar.google.com',
+  gmail:'gmail.com',
+  microsoftoutlook:'outlook.com',
+  microsoftteams:'teams.microsoft.com',
+  microsoftonedrive:'onedrive.com',
+  verizon:'verizon.com',
+  stripe:'stripe.com',
+  shopify:'shopify.com',
+  notion:'notion.so',
+  goldmansachs:'goldmansachs.com',
+  tesla:'tesla.com',
+  delta:'delta.com',
+  pfizer:'pfizer.com',
+  meta:'meta.com',
+  rivian:'rivian.com',
+  spotify:'spotify.com',
+  epicgames:'epicgames.com',
+};
+
 const LOGO_CACHE={};
+function makeImg(src){ const img=new Image(); img.crossOrigin='anonymous'; img.src=src; return img; }
 function getLogo(slug){
   if(!slug) return null;
   if(slug in LOGO_CACHE) return LOGO_CACHE[slug];
-  const img=new Image();
-  img.src=`https://cdn.simpleicons.org/${slug}/ffffff`;
+  if(slug==='slack'){ LOGO_CACHE[slug]=makeImg(SLACK_LOGO_URI); return LOGO_CACHE[slug]; }
+  // Simple Icons in white for uniform contrast on dark node discs
+  const img=makeImg(`https://cdn.simpleicons.org/${slug}/ffffff`);
+  img.onerror=()=>{
+    const dom=LOGO_DOMAIN[slug];
+    if(dom){ img.onerror=null; img.src=`https://logo.clearbit.com/${dom}`; }
+  };
   LOGO_CACHE[slug]=img;
   return img;
 }
 
 function getN(id){ return AN.find(n=>n.id===id); }
+let nowT=0;
 function nPos(n){
   if(n.id==='hub') return {x:CX,y:CY};
-  if(n.isSlackbot){ const r=70*(1+(quality-1)*0.12), a=ANG[n.id]||0; return {x:CX+Math.cos(a)*r,y:CY+Math.sin(a)*r}; }
-  const o=ORBIT[n.type]||1, r=orbR[o]||130, a=ANG[n.id]||0;
+  if(n.isSlackbot){
+    const m=motFor(n.id,1);
+    const r=70*(1+(quality-1)*0.12) + Math.sin(nowT*m.wobFrq+m.wobPh)*m.wobAmp*0.5;
+    const a=ANG[n.id]||0;
+    return {x:CX+Math.cos(a)*r,y:CY+Math.sin(a)*r};
+  }
+  const o=ORBIT[n.type]||1;
+  const m=motFor(n.id,o);
+  const r=(orbR[o]||130) + m.rOffset + Math.sin(nowT*m.wobFrq+m.wobPh)*m.wobAmp;
+  const a=ANG[n.id]||0;
   return {x:CX+Math.cos(a)*r,y:CY+Math.sin(a)*r};
 }
 
 let last=0;
 function draw(ts){
   const dt=Math.min(ts-last,50); last=ts;
+  nowT=ts;
   if(!paused){
     AN.forEach(n=>{
       if(n.id==='hub') return;
-      if(n.isSlackbot){ ANG[n.id]=(ANG[n.id]||0)+0.00018*dt; return; }
+      if(n.isSlackbot){
+        const m=motFor(n.id,1);
+        ANG[n.id]=(ANG[n.id]||0)+0.00018*m.spdMult*dt;
+        return;
+      }
       const o=ORBIT[n.type]||1;
-      ANG[n.id]=(ANG[n.id]||0)+SPD[o]*dt;
+      const m=motFor(n.id,o);
+      ANG[n.id]=(ANG[n.id]||0)+SPD[o]*m.spdMult*dt;
     });
   }
 
   ctx.clearRect(0,0,W,H);
 
-  [1,2,3].forEach(i=>{
+  for(let i=1;i<orbR.length;i++){
     ctx.beginPath(); ctx.arc(CX,CY,orbR[i],0,Math.PI*2);
     ctx.strokeStyle='#ffffff06'; ctx.lineWidth=1;
     ctx.setLineDash([3,9]); ctx.stroke(); ctx.setLineDash([]);
-  });
+  }
   if(sbOn){
     ctx.beginPath(); ctx.arc(CX,CY,70*(1+(quality-1)*0.12),0,Math.PI*2);
     ctx.strokeStyle='#ECB22E18'; ctx.lineWidth=1;
@@ -882,8 +1134,11 @@ function draw(ts){
     const p2=nPos(n);
     const hi=hoverId&&(hoverId===n.id||hoverId==='hub');
     const fd=hoverId&&!hi;
+    const spot=!spotlightIds || spotlightIds.has(n.id);
     ctx.beginPath(); ctx.moveTo(CX,CY); ctx.lineTo(p2.x,p2.y);
-    ctx.strokeStyle=hi?(n.isSlackbot?'#ECB22E28':'#7c6af728'):fd?'#ffffff03':'#ffffff09';
+    ctx.strokeStyle = !spot
+      ? '#ffffff03'
+      : (hi?(n.isSlackbot?'#ECB22E28':'#7c6af728'):fd?'#ffffff03':'#ffffff09');
     ctx.lineWidth=hi?1.5:1; ctx.stroke();
   });
 
@@ -893,7 +1148,8 @@ function draw(ts){
     if(!na||!nb){p.p+=p.s;return;}
     const pa=nPos(na),pb=nPos(nb);
     const px=pa.x+(pb.x-pa.x)*p.p, py=pa.y+(pb.y-pa.y)*p.p;
-    if(!(hoverId&&hoverId!==na.id&&hoverId!==nb.id&&hoverId!=='hub')){
+    const inSpot = !spotlightIds || (spotlightIds.has(na.id)&&spotlightIds.has(nb.id));
+    if(inSpot && !(hoverId&&hoverId!==na.id&&hoverId!==nb.id&&hoverId!=='hub')){
       const nt2=nb.isSlackbot?SB_NT:NT[nb.type];
       ctx.beginPath(); ctx.arc(px,py,3,0,Math.PI*2);
       ctx.fillStyle=nt2.color; ctx.shadowColor=nt2.color; ctx.shadowBlur=10;
@@ -907,23 +1163,30 @@ function draw(ts){
     const nt=n.isSlackbot?SB_NT:NT[n.type];
     const isH=hoverId===n.id;
     const isFd=hoverId&&!isH&&n.id!=='hub';
+    const spot=!spotlightIds || spotlightIds.has(n.id);
     const r=nt.r*(isH?1.2:1);
-    ctx.globalAlpha=isFd?.22:1;
+    ctx.globalAlpha = isFd?.22 : (!spot?.22:1);
 
     const g=ctx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,r*3);
     g.addColorStop(0,isH?nt.glow.replace(/[\d.]+\)$/,'.5)'):nt.glow);
     g.addColorStop(1,'transparent');
     ctx.beginPath(); ctx.arc(pos.x,pos.y,r*3,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
 
+    const logo = n.logo ? getLogo(n.logo) : null;
+    const logoReady = logo && logo.complete && logo.naturalWidth>0;
+
+    // Hub keeps white disc for the 4-color Slack mark. Every other node uses
+    // the app surface colour so logos sit against the same dark background as the canvas.
     ctx.beginPath(); ctx.arc(pos.x,pos.y,r,0,Math.PI*2);
-    ctx.fillStyle=n.type==='hub'?nt.color:(n.isSlackbot?'#ECB22E33':nt.color+'33');
+    ctx.fillStyle = n.type==='hub'
+      ? '#ffffff'
+      : (n.isSlackbot ? '#ECB22E22' : '#1a1d21');
     if(isH){ctx.shadowColor=nt.color;ctx.shadowBlur=24;}
     ctx.strokeStyle=nt.stroke; ctx.lineWidth=(n.type==='hub'||n.isSlackbot)?3:2;
     ctx.fill(); ctx.stroke(); ctx.shadowBlur=0;
 
-    const logo = n.logo ? getLogo(n.logo) : null;
-    if(logo && logo.complete && logo.naturalWidth>0){
-      const sz=r*1.1;
+    if(logoReady){
+      const sz=r*(n.type==='hub'?1.25:1.15);
       ctx.drawImage(logo, pos.x-sz/2, pos.y-sz/2, sz, sz);
     } else {
       ctx.fillStyle='#fff';
@@ -961,7 +1224,7 @@ canvas.addEventListener('mousemove',e=>{
     const nt2=found.isSlackbot?SB_NT:NT[found.type];
     document.getElementById('tn').textContent=resolveLabel(found);
     document.getElementById('tn').style.color=nt2.stroke;
-    const tl={hub:'Command Centre',customer:'Customer Org',partner:'Partner',vendor:'Vendor',agent:'AI Agent',app:'App Integration'};
+    const tl={hub:'Command Centre',employee:'Department',customer:'Customer Org',partner:'Partner',vendor:'Vendor',agent:'AI Agent',app:'App Integration'};
     document.getElementById('tt').textContent=found.isSlackbot?'Native Slackbot':(tl[found.type]||'Node');
     document.getElementById('tt').style.color=nt2.color;
     document.getElementById('tb').textContent=found.tip.b;
