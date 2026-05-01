@@ -181,10 +181,29 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-
 .fi .fo{font-weight:700;}.fi .fa{color:var(--muted);}.fi .ft{color:var(--muted);font-size:9px;}
 
 /* BOTTOMBAR */
-.bot{grid-column:1/-1;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 22px;}
+.bot{grid-column:1/-1;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:6px 22px;gap:14px;}
 .bot-mid{font-size:11px;color:var(--muted);font-style:italic;}
 .bot-r span{color:var(--yellow);font-weight:700;font-size:11px;}
-.bot-r{font-size:11px;color:var(--muted);}
+.bot-r{font-size:11px;color:var(--muted);text-align:right;display:flex;flex-direction:column;gap:2px;}
+.bot-note{font-size:10px;color:#6b6b78;font-style:italic;}
+@media (max-width:900px){
+  .bot{flex-direction:column;align-items:flex-start;padding:10px 16px;}
+  .bot-r{text-align:left;}
+}
+
+/* PRINT */
+@media print{
+  @page{size:A4 landscape;margin:10mm;}
+  html,body{overflow:visible !important;background:#fff !important;color:#000 !important;}
+  #login-gate{display:none !important;}
+  .layout{display:block !important;height:auto !important;}
+  .topbar,.bot{background:var(--aug) !important;}
+  .pp-btn,.t-title-input{display:none !important;}
+  .left-panel,.right-panel{display:none !important;}
+  .canvas-wrap{height:90vh !important;min-height:600px !important;page-break-inside:avoid;}
+  .bot{page-break-before:avoid;}
+}
+.pdf-rendering .pp-btn,.pdf-rendering .t-title-input{visibility:hidden;}
 
 /* ── LOGIN GATE ── */
 #login-gate{
@@ -291,6 +310,12 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-
     </button>
     <button class="pp-btn" id="pp-btn" onclick="togglePause()" title="Pause/play animations">
       <span class="pp-ic" id="pp-ic">⏸</span><span id="pp-lbl">Pause</span>
+    </button>
+    <button class="pp-btn" id="pr-btn" onclick="printView()" title="Open the browser print dialog">
+      <span>🖨</span><span>Print</span>
+    </button>
+    <button class="pp-btn" id="pdf-btn" onclick="downloadPDF()" title="Download a PDF snapshot of the current view">
+      <span>⬇</span><span id="pdf-lbl">PDF</span>
     </button>
     <div class="stat-pill">🔗 Orgs in Network <span class="num" id="s-orgs">—</span></div>
     <div class="stat-pill secondary">⚡ AI Actions/day <span class="num" id="s-actions">—</span></div>
@@ -544,7 +569,10 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-
 <footer class="bot">
   <div style="font-size:11px;color:var(--muted)"><strong style="color:#fff">Hover</strong> to explore · <strong style="color:#fff">Configure</strong> tab to edit names &amp; add nodes · <strong style="color:#fff">Scale</strong> slider changes network size</div>
   <div class="bot-mid">"Every new org in your network multiplies the intelligence of every agent."</div>
-  <div class="bot-r">Sources: Forrester TEI · MS Work Trend Index 2024 · Slack customer stories · Built by <span>B.Dsouza</span></div>
+  <div class="bot-r">
+    <div>Sources: Forrester TEI · MS Work Trend Index 2024 · Slack customer stories · Built by <span>B.Dsouza</span></div>
+    <div class="bot-note">🔒 Your edits stay in this browser tab only — nothing is saved to a server. Close the tab and everything resets to defaults.</div>
+  </div>
 </footer>
 </div>
 
@@ -940,7 +968,7 @@ function togglePause(){
 }
 
 function onCompanyInput(v){
-  try{ localStorage.setItem('_slk_company',v); }catch(e){}
+  try{ sessionStorage.setItem('_slk_company',v); }catch(e){}
 }
 
 function sizeOrgInput(){
@@ -953,21 +981,23 @@ function sizeOrgInput(){
 }
 
 function onOrgInput(v){
-  try{ localStorage.setItem('_slk_org',v); }catch(e){}
+  try{ sessionStorage.setItem('_slk_org',v); }catch(e){}
   sizeOrgInput();
 }
 
 (function(){
   try{
-    // One-time migration: clear old default titles so the new default takes effect.
+    // Drop any legacy cross-session values so nothing leaks between visits.
+    localStorage.removeItem('_slk_company');
+    localStorage.removeItem('_slk_org');
     const OLD_DEFAULTS = ['Slack Connect — The Network Effect','Your Company Name'];
-    const saved=localStorage.getItem('_slk_company');
+    const saved=sessionStorage.getItem('_slk_company');
     if(saved!==null && !OLD_DEFAULTS.includes(saved)){
       const el=document.getElementById('t-company'); if(el) el.value=saved;
     } else if(saved!==null){
-      localStorage.removeItem('_slk_company');
+      sessionStorage.removeItem('_slk_company');
     }
-    const org=localStorage.getItem('_slk_org');
+    const org=sessionStorage.getItem('_slk_org');
     if(org!==null){ const el=document.getElementById('org-name'); if(el) el.value=org; }
   }catch(e){}
   sizeOrgInput();
@@ -1661,6 +1691,53 @@ rebuild();
 setTimeout(()=>refreshStats(true),400);
 // Default to "Before Slack" so viewers see the problem first.
 toggleBeforeSlack();
+
+// ── Print & PDF ──
+function printView(){
+  window.print();
+}
+
+function loadHtml2Pdf(){
+  return new Promise((resolve,reject)=>{
+    if(window.html2pdf) return resolve(window.html2pdf);
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+    s.onload=()=>resolve(window.html2pdf);
+    s.onerror=()=>reject(new Error('Failed to load html2pdf'));
+    document.head.appendChild(s);
+  });
+}
+
+async function downloadPDF(){
+  const btn=document.getElementById('pdf-btn');
+  const lbl=document.getElementById('pdf-lbl');
+  const orig=lbl.textContent;
+  lbl.textContent='Generating…';
+  btn.disabled=true;
+  try{
+    const html2pdf=await loadHtml2Pdf();
+    const layout=document.getElementById('layout');
+    const company=(document.getElementById('t-company')||{}).value||'Slack Network';
+    const safe=company.replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase()||'slack-network';
+    const filename=`${safe}-${new Date().toISOString().slice(0,10)}.pdf`;
+    document.body.classList.add('pdf-rendering');
+    await html2pdf().set({
+      margin:6,
+      filename,
+      image:{type:'jpeg',quality:0.96},
+      html2canvas:{scale:2,backgroundColor:'#0d0f12',useCORS:true,logging:false},
+      jsPDF:{unit:'mm',format:'a3',orientation:'landscape'},
+      pagebreak:{mode:['css','legacy']}
+    }).from(layout).save();
+  }catch(err){
+    console.error(err);
+    alert('PDF generation failed. Try the Print button and choose "Save as PDF" from the dialog.');
+  }finally{
+    document.body.classList.remove('pdf-rendering');
+    lbl.textContent=orig;
+    btn.disabled=false;
+  }
+}
 </script>
 </body>
 </html>
