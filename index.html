@@ -204,6 +204,9 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-
   .bot{page-break-before:avoid;}
 }
 .pdf-rendering .pp-btn,.pdf-rendering .t-title-input{visibility:hidden;}
+.pdf-rendering .pr{display:none !important;}
+.pdf-rendering input{caret-color:transparent !important;}
+.pdf-rendering *{animation-play-state:paused !important;}
 
 /* ── LOGIN GATE ── */
 #login-gate{
@@ -1720,7 +1723,11 @@ async function downloadPDF(){
     const company=(document.getElementById('t-company')||{}).value||'Slack Network';
     const safe=company.replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase()||'slack-network';
     const filename=`${safe}-${new Date().toISOString().slice(0,10)}.pdf`;
+    if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
     document.body.classList.add('pdf-rendering');
+    try{ resize(); }catch(e){}
+    try{ draw(performance.now()); }catch(e){}
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     await html2pdf().set({
       margin:6,
       filename,
