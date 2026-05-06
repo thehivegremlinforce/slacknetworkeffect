@@ -141,8 +141,27 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-
 .node-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:#fff;font-size:11px;font-family:'Lato',sans-serif;transition:border-color .2s;outline:none;}
 .node-input:focus{border-color:var(--purple);}
 .node-input:hover:not(:focus){border-color:#444;}
+.hc-input{width:48px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 4px;color:#fb923c;font-size:11px;font-weight:700;font-family:'Lato',sans-serif;text-align:center;outline:none;transition:border-color .2s;flex-shrink:0;}
+.hc-input:focus{border-color:var(--purple);}
+.hc-input:hover:not(:focus){border-color:#444;}
+.hc-input::placeholder{color:#fb923c55;}
 .del-btn{background:none;border:none;color:#444;font-size:15px;cursor:pointer;padding:0 1px;line-height:1;transition:color .15s;flex-shrink:0;}
 .del-btn:hover{color:var(--red);}
+
+/* HUB EDIT */
+.hub-section{background:var(--bg);border:1px solid #7c6af733;border-radius:10px;padding:12px;margin-bottom:14px;}
+.hub-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.hub-logo-preview{width:36px;height:36px;border-radius:50%;border:2px solid var(--purple);background:#1a1d21;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
+.hub-logo-preview img{width:100%;height:100%;object-fit:cover;}
+.hub-info{flex:1;}
+.hub-name-input{width:100%;background:transparent;border:1px solid var(--border);border-radius:6px;padding:6px 9px;color:#fff;font-size:12px;font-weight:700;font-family:'Lato',sans-serif;outline:none;transition:border-color .2s;}
+.hub-name-input:focus{border-color:var(--purple);}
+.hub-name-input::placeholder{color:#ffffff44;}
+.hub-upload-row{display:flex;align-items:center;gap:8px;}
+.hub-upload-btn{display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:6px;border:1px solid var(--purple);background:transparent;color:var(--purple);font-size:10px;font-weight:700;cursor:pointer;font-family:'Lato',sans-serif;transition:all .2s;}
+.hub-upload-btn:hover{background:#7c6af712;}
+.hub-reset-btn{padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:10px;font-weight:700;cursor:pointer;font-family:'Lato',sans-serif;transition:all .2s;}
+.hub-reset-btn:hover{border-color:var(--red);color:var(--red);}
 
 /* CANVAS */
 .canvas-wrap{position:relative;overflow:hidden;background:var(--bg);}
@@ -381,6 +400,23 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-
   <!-- CONFIGURE TAB -->
   <div class="panel-body" id="tab-edit" style="display:none">
 
+    <!-- Hub / Centre Node -->
+    <div class="hub-section">
+      <div class="p-label" style="margin-top:0">Centre Node</div>
+      <div class="hub-top">
+        <div class="hub-logo-preview" id="hub-logo-preview"><img id="hub-logo-img" src="" alt=""></div>
+        <div class="hub-info">
+          <input class="hub-name-input" id="hub-name-input" placeholder="Slack HQ" value=""
+            oninput="onHubNameInput(this.value)">
+        </div>
+      </div>
+      <div class="hub-upload-row">
+        <button class="hub-upload-btn" onclick="document.getElementById('hub-file').click()">📁 Upload Logo</button>
+        <button class="hub-reset-btn" onclick="resetHub()">↺ Reset to Slack</button>
+        <input type="file" id="hub-file" accept="image/*" style="display:none" onchange="onHubFileSelect(event)">
+      </div>
+    </div>
+
     <!-- Quality slider -->
     <div class="quality-wrap">
       <div class="q-header">
@@ -513,7 +549,7 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Lato',-apple-
     <input class="org-name-input" id="org-name" placeholder="Your Organisation"
       oninput="onOrgInput(this.value)" spellcheck="false" autocomplete="off">
     <span class="canvas-title-x">×</span>
-    <span class="canvas-title-suffix">Slack</span>
+    <span class="canvas-title-suffix" id="canvas-title-suffix">Slack</span>
     <span id="org-name-mirror" aria-hidden="true"
       style="position:absolute;visibility:hidden;white-space:pre;font-size:24px;font-weight:900;font-family:'Lato',sans-serif;letter-spacing:-.6px;padding:0 10px;"></span>
   </div>
@@ -690,6 +726,9 @@ let customIdN  = 1000;
 
 let AN = [];
 let ANG= {};
+let headcountMap = {}; // nodeId -> number (employee headcount per department)
+let hubName = '';
+let hubLogoDataURL = null;
 
 const NT = {
   hub:     {color:'#7c6af7',glow:'#7c6af755',stroke:'#a78bfa',r:38},
@@ -735,9 +774,9 @@ function rebuild(){
   const q = QLEVEL[quality];
   AN = [];
 
-  AN.push({id:'hub',type:'hub',emoji:'🟣',label:'Slack HQ',logo:'slack',tip:{b:'The AI-powered command centre. Every signal, every agent, every conversation — unified.',s:'🔗 All orgs connected here'}});
+  AN.push({id:'hub',type:'hub',emoji:'🟣',label:hubName||'Slack HQ',logo:hubLogoDataURL?'_custom_hub':'slack',tip:{b:'The AI-powered command centre. Every signal, every agent, every conversation — unified.',s:'🔗 All orgs connected here'}});
 
-  if(sbOn) AN.push({...SB_NODE, label: resolveLabel(SB_NODE), emoji: resolveEmoji(SB_NODE)});
+  // Slackbot is represented by the Saturn rings around the Hub — no separate orbiting node.
 
   const types = ['employee','agent','customer','partner','vendor','app'];
   types.forEach(type=>{
@@ -843,16 +882,40 @@ function refreshInputs(){
       inp.dataset.id=n.id;
       inp.oninput=e=>{ labelMap[n.id]=e.target.value; refreshLegend(); refreshQSummary(); };
 
-      const del=document.createElement('button');
-      del.className='del-btn'; del.title='Remove'; del.textContent='×';
-      del.onclick=()=>{
-        if(isCustom) customNodes=customNodes.filter(x=>x.id!==n.id);
-        else hiddenPool.add(n.id);
-        delete ANG[n.id];
-        rebuild();
-      };
+      // Headcount input for employees
+      if(type==='employee'){
+        const hc=document.createElement('input');
+        hc.className='hc-input'; hc.type='number'; hc.min='1'; hc.step='1';
+        hc.placeholder='#';
+        hc.title='Headcount for this department';
+        hc.value=headcountMap[n.id]||'';
+        hc.oninput=e=>{
+          const v=parseInt(e.target.value);
+          if(v>0) headcountMap[n.id]=v;
+          else delete headcountMap[n.id];
+          refreshStats(false);
+        };
+        const del=document.createElement('button');
+        del.className='del-btn'; del.title='Remove'; del.textContent='×';
+        del.onclick=()=>{
+          if(isCustom) customNodes=customNodes.filter(x=>x.id!==n.id);
+          else hiddenPool.add(n.id);
+          delete ANG[n.id]; delete headcountMap[n.id];
+          rebuild();
+        };
+        row.append(em,inp,hc,del);
+      } else {
+        const del=document.createElement('button');
+        del.className='del-btn'; del.title='Remove'; del.textContent='×';
+        del.onclick=()=>{
+          if(isCustom) customNodes=customNodes.filter(x=>x.id!==n.id);
+          else hiddenPool.add(n.id);
+          delete ANG[n.id];
+          rebuild();
+        };
+        row.append(em,inp,del);
+      }
 
-      row.append(em,inp,del);
       el.appendChild(row);
     });
   });
@@ -932,8 +995,14 @@ function refreshStats(anim){
   // Hrs saved/week, anchored to Forrester TEI ~97 min/user/week (~1.6 hr)
   // Agents and apps amplify what each person can offload; Slackbot adds a fixed baseline
   const hrsWk    = Math.round((emp*1.6 + ag*12 + app*3) + (sbOn?20:0));
-  // People in Network — emp = actual people; cust/part counted as org headcount proxies
-  const reach    = Math.round(emp + cust*850 + part*220);
+  // People in Network — use manual headcount if entered, else fallback to multiplier
+  const empHeadcount = AN.filter(n=>n.type==='employee').reduce((sum,n)=>{
+    return sum + (headcountMap[n.id] || 0);
+  }, 0);
+  const hasManualHC = empHeadcount > 0;
+  const reach    = hasManualHC
+    ? Math.round(empHeadcount + cust*850 + part*220)
+    : Math.round(emp + cust*850 + part*220);
   const deals    = Math.round(cust * (0.6 + m*0.08));
   const saved    = hrsWk; // right-panel card mirrors topbar stat
   const ext      = Math.round((cust + part + vend) * (1 + m*0.08));
@@ -1013,9 +1082,11 @@ function resetAll(){
   customNodes = [];
   labelMap = {};
   emojiMap = {};
+  headcountMap = {};
   ANG = {};
   pulses = [];
   sbOn = false;
+  resetHub();
 
   document.querySelectorAll('.leg-item').forEach(el=>{
     el.classList.add('off');
@@ -1322,6 +1393,12 @@ const LOGO_CACHE={};
 function makeImg(src){ const img=new Image(); img.crossOrigin='anonymous'; img.src=src; return img; }
 function getLogo(slug){
   if(!slug) return null;
+  if(slug==='_custom_hub'){
+    if(!hubLogoDataURL) return getLogo('slack');
+    if(LOGO_CACHE['_custom_hub']&&LOGO_CACHE['_custom_hub']._src===hubLogoDataURL) return LOGO_CACHE['_custom_hub'];
+    const img=makeImg(hubLogoDataURL); img._src=hubLogoDataURL;
+    LOGO_CACHE['_custom_hub']=img; return img;
+  }
   if(slug in LOGO_CACHE) return LOGO_CACHE[slug];
   if(slug==='slack'){ LOGO_CACHE[slug]=makeImg(SLACK_LOGO_URI); return LOGO_CACHE[slug]; }
   if(slug==='slackbot'){ LOGO_CACHE[slug]=makeImg('https://a.slack-edge.com/80588/img/slackbot_192.png'); return LOGO_CACHE[slug]; }
@@ -1345,7 +1422,7 @@ function nPos(n){
   if(n.id==='hub') return {x:CX,y:CY};
   if(n.isSlackbot){
     const m=motFor(n.id,1);
-    const r=70*(1+(quality-1)*0.12) + Math.sin(nowT*m.wobFrq+m.wobPh)*m.wobAmp*0.5;
+    const r=58*(1+(quality-1)*0.12) + Math.sin(nowT*m.wobFrq+m.wobPh)*m.wobAmp*0.4;
     const a=ANG[n.id]||0;
     return {x:CX+Math.cos(a)*r,y:CY+Math.sin(a)*r};
   }
@@ -1517,11 +1594,6 @@ function draw(ts){
     ctx.strokeStyle='#ffffff06'; ctx.lineWidth=1;
     ctx.setLineDash([3,9]); ctx.stroke(); ctx.setLineDash([]);
   }
-  if(sbOn){
-    ctx.beginPath(); ctx.arc(CX,CY,70*(1+(quality-1)*0.12),0,Math.PI*2);
-    ctx.strokeStyle='#ECB22E18'; ctx.lineWidth=1;
-    ctx.setLineDash([2,7]); ctx.stroke(); ctx.setLineDash([]);
-  }
 
   AN.forEach(n=>{
     if(n.id==='hub') return;
@@ -1566,15 +1638,42 @@ function draw(ts){
     g.addColorStop(1,'transparent');
     ctx.beginPath(); ctx.arc(pos.x,pos.y,r*3,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
 
+    // Saturn rings on the Hub — Slackbot logos along elliptical orbits (back half)
+    if(n.type==='hub' && sbOn){
+      const ringTilt = 0.35;
+      const ringRot = nowT * 0.00008;
+      const sbLogo = getLogo('slackbot');
+      const sbReady = sbLogo && sbLogo.complete && sbLogo.naturalWidth>0;
+      if(sbReady){
+        const rings = [
+          {rx: r*2.2, count:12, sz:18, alpha:0.85, spdMult:1.0},
+          {rx: r*2.9, count:16, sz:15, alpha:0.6, spdMult:-0.7},
+          {rx: r*3.6, count:20, sz:12, alpha:0.4, spdMult:0.5},
+        ];
+        ctx.save();
+        ctx.translate(pos.x, pos.y);
+        ctx.rotate(ringRot);
+        rings.forEach(ring=>{
+          for(let i=0;i<ring.count;i++){
+            const angle = (i/ring.count)*Math.PI*2 + nowT*0.0002*ring.spdMult;
+            const ex = Math.cos(angle)*ring.rx;
+            const ey = Math.sin(angle)*ring.rx*ringTilt;
+            if(ey < 0) continue;
+            ctx.globalAlpha = ring.alpha * (isFd?0.22:(!spot?0.22:1));
+            ctx.drawImage(sbLogo, ex-ring.sz/2, ey-ring.sz/2, ring.sz, ring.sz);
+          }
+        });
+        ctx.restore();
+        ctx.globalAlpha = isFd?.22 : (!spot?.22:1);
+      }
+    }
+
     const logo = n.logo ? getLogo(n.logo) : null;
     const logoReady = logo && logo.complete && logo.naturalWidth>0;
 
     // Hub and Slackbot both use a white disc so their full-colour logos read correctly.
-    // Every other node uses the app surface colour for uniform dark background.
     ctx.beginPath(); ctx.arc(pos.x,pos.y,r,0,Math.PI*2);
-    ctx.fillStyle = (n.type==='hub' || n.isSlackbot)
-      ? '#ffffff'
-      : '#1a1d21';
+    ctx.fillStyle = (n.type==='hub' || n.isSlackbot) ? '#ffffff' : '#1a1d21';
     if(isH){ctx.shadowColor=nt.color;ctx.shadowBlur=24;}
     ctx.strokeStyle=nt.stroke; ctx.lineWidth=(n.type==='hub'||n.isSlackbot)?3:2;
     ctx.fill(); ctx.stroke(); ctx.shadowBlur=0;
@@ -1587,6 +1686,36 @@ function draw(ts){
       ctx.font=`${r*.95}px "Apple Color Emoji","Segoe UI Emoji",serif`;
       ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.fillText(n.emoji,pos.x,pos.y);
+    }
+
+    // Saturn rings on the Hub — Slackbot logos (front half — over the disc)
+    if(n.type==='hub' && sbOn){
+      const ringTilt = 0.35;
+      const ringRot = nowT * 0.00008;
+      const sbLogo = getLogo('slackbot');
+      const sbReady = sbLogo && sbLogo.complete && sbLogo.naturalWidth>0;
+      if(sbReady){
+        const rings = [
+          {rx: r*2.2, count:12, sz:18, alpha:0.85, spdMult:1.0},
+          {rx: r*2.9, count:16, sz:15, alpha:0.6, spdMult:-0.7},
+          {rx: r*3.6, count:20, sz:12, alpha:0.4, spdMult:0.5},
+        ];
+        ctx.save();
+        ctx.translate(pos.x, pos.y);
+        ctx.rotate(ringRot);
+        rings.forEach(ring=>{
+          for(let i=0;i<ring.count;i++){
+            const angle = (i/ring.count)*Math.PI*2 + nowT*0.0002*ring.spdMult;
+            const ex = Math.cos(angle)*ring.rx;
+            const ey = Math.sin(angle)*ring.rx*ringTilt;
+            if(ey >= 0) continue;
+            ctx.globalAlpha = ring.alpha * (isFd?0.22:(!spot?0.22:1));
+            ctx.drawImage(sbLogo, ex-ring.sz/2, ey-ring.sz/2, ring.sz, ring.sz);
+          }
+        });
+        ctx.restore();
+        ctx.globalAlpha = isFd?.22 : (!spot?.22:1);
+      }
     }
 
     ctx.font=`${n.type==='hub'?'bold 11':'10'}px Lato,sans-serif`;
@@ -1688,6 +1817,44 @@ setInterval(()=>{
     t.textContent = secs<60 ? `${secs}s ago` : `${Math.floor(secs/60)}m ago`;
   });
 },1000);
+
+// ── Hub editing ──
+function initHubUI(){
+  const img=document.getElementById('hub-logo-img');
+  if(img) img.src=SLACK_LOGO_URI;
+}
+function onHubNameInput(v){
+  hubName=v.trim();
+  const suffix=document.getElementById('canvas-title-suffix');
+  if(suffix) suffix.textContent=hubName||'Slack';
+  rebuild();
+}
+function onHubFileSelect(e){
+  const file=e.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    hubLogoDataURL=ev.target.result;
+    delete LOGO_CACHE['_custom_hub'];
+    const img=document.getElementById('hub-logo-img');
+    if(img) img.src=hubLogoDataURL;
+    rebuild();
+  };
+  reader.readAsDataURL(file);
+}
+function resetHub(){
+  hubName='';
+  hubLogoDataURL=null;
+  delete LOGO_CACHE['_custom_hub'];
+  const inp=document.getElementById('hub-name-input');
+  if(inp) inp.value='';
+  const img=document.getElementById('hub-logo-img');
+  if(img) img.src=SLACK_LOGO_URI;
+  const suffix=document.getElementById('canvas-title-suffix');
+  if(suffix) suffix.textContent='Slack';
+  rebuild();
+}
+initHubUI();
 
 // ── Boot ──
 rebuild();
